@@ -6,7 +6,7 @@ on:
       version:
         description: Package version without a leading v
         required: true
-        default: '7.3.0'
+        default: '7.3.1'
         type: string
   push:
     tags:

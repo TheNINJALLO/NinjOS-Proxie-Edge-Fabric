@@ -4,7 +4,7 @@
     "name": "Ninj-OS Vanilla Bridge",
     "description": "Verified Ninj-OS Proxie identity and permission bridge for Mojang Bedrock Dedicated Server.",
     "uuid": "e394e31b-91f2-4e11-a0d8-f46f5c1b15f8",
-    "version": [7, 3, 0],
+    "version": [7, 3, 1],
     "min_engine_version": [1, 26, 30]
   },
   "modules": [
@@ -12,7 +12,7 @@
       "type": "script",
       "language": "javascript",
       "uuid": "e8a606d5-34bf-4f44-815d-0fbdc9721184",
-      "version": [7, 3, 0],
+      "version": [7, 3, 1],
       "entry": "scripts/main.js"
     }
   ],

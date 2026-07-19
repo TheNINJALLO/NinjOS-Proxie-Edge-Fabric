@@ -8,15 +8,15 @@ Place these together:
 
 ```text
 install-standalone.sh
-NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz
-NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz.sha256
+NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
+NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz.sha256
 ```
 
 Run:
 
 ```bash
 chmod +x install-standalone.sh
-sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz
+sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
 ```
 
 The installer:
