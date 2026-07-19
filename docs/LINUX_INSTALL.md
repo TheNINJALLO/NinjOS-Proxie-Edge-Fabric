@@ -9,7 +9,6 @@ Place these together:
 ```text
 install-standalone.sh
 NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
-NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz.sha256
 ```
 
 Run:

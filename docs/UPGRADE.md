@@ -19,7 +19,7 @@ v7.3.1 adds per-backend connection modes, the Session Core, signed identity gran
 
 1. Import and assign the v7.3.1 egg.
 2. Reinstall.
-3. Upload the v7.3.1 runtime and checksum.
+3. Upload the v7.3.1 runtime archive.
 4. Start and verify the console version.
 5. Review each backend's connection mode and adapter.
 
