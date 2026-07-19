@@ -45,7 +45,13 @@ jobs:
           set -euo pipefail
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y ca-certificates cmake file git ninja-build python3 unzip zip clang libc++-dev libc++abi-dev lld
+          apt-get install -y ca-certificates cmake curl file git gnupg ninja-build python3 unzip zip
+          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor -o /usr/share/keyrings/llvm-snapshot.gpg
+          echo "deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" \
+            > /etc/apt/sources.list.d/llvm-18.list
+          apt-get update
+          apt-get install -y clang-18 libc++-18-dev libc++abi-18-dev lld-18
 
       - name: Generate companion documentation
         run: python3 companion/scripts/generate-documentation.py
@@ -57,8 +63,8 @@ jobs:
           cmake -S companion -B companion/build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DENDSTONE_API_VERSION="$ENDSTONE_VERSION" \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
             -DCMAKE_CXX_FLAGS='-stdlib=libc++' \
             -DCMAKE_SHARED_LINKER_FLAGS='-stdlib=libc++'
           cmake --build companion/build --parallel 2
