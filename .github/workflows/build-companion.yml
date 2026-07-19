@@ -71,6 +71,7 @@ jobs:
 
       - name: Package companion
         id: package
+        shell: bash
         env:
           ENDSTONE_VERSION: ${{ steps.version.outputs.endstone_version }}
         run: |
