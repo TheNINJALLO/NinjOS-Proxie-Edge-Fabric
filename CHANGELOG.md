@@ -1,6 +1,8 @@
 # Changelog
 
-## Dashboard access and interface update
+## 7.3.1 - 2026-07-19
+
+### Dashboard access and interface update
 
 - Added owner-managed admin, operator, and viewer accounts with password reset,
   immediate session revocation, temporary disablement, deletion, and audit events.

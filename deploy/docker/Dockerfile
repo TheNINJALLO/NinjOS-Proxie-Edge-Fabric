@@ -28,7 +28,7 @@ COPY --chown=ninjos:ninjos docs ./docs
 COPY --chown=ninjos:ninjos session-core/package.json session-core/package-lock.json ./session-core/
 COPY --chown=ninjos:ninjos session-core/src ./session-core/src
 COPY --from=session-deps --chown=ninjos:ninjos /build/session-core/node_modules ./session-core/node_modules
-COPY --chown=ninjos:ninjos bridges/vanilla-addon/NinjOS-Vanilla-Bridge-v7.3.0.mcpack ./bridges/
+COPY --chown=ninjos:ninjos bridges/vanilla-addon/NinjOS-Vanilla-Bridge-v7.3.1.mcpack ./bridges/
 COPY --chown=ninjos:ninjos prebuilt/agents ./agents
 
 RUN chmod 0755 NinjOSEdge NinjOSDashboard start-runtime.sh ninjos-dashboard-account.sh \

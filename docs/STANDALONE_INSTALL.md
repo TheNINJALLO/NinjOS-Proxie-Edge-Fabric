@@ -19,15 +19,15 @@ and a C++ compiler are only needed when building from source.
 1. Download the matching runtime archive and checksum file from the GitHub Release:
 
    ```text
-   NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz
-   NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz.sha256
+   NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
+   NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz.sha256
    ```
 
 2. Download or clone the source repository, then run the installer as root:
 
    ```bash
    sudo ./scripts/install-standalone.sh \
-     ./NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz
+     ./NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
    ```
 
 3. The installer will:
@@ -84,7 +84,7 @@ or during testing.
 
 ```bash
 mkdir -p "$HOME/ninjos-proxie"
-tar -xzf NinjOS-Proxie-Edge-Fabric-v7.3.0-Runtime.tar.gz \
+tar -xzf NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz \
   -C "$HOME/ninjos-proxie"
 cd "$HOME/ninjos-proxie"
 chmod +x NinjOSEdge NinjOSDashboard start-runtime.sh ninjos-dashboard-account.sh

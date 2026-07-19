@@ -15,7 +15,7 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 
-$ProductVersion = "7.3.0"
+$ProductVersion = "7.3.1"
 $WslCreatorId = "{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}"
 $FirewallGroup = "Ninj-OS Proxie"
 $StartupTaskName = "Ninj-OS Proxie WSL Startup"
@@ -40,7 +40,7 @@ function Invoke-WslRoot {
     param([string]$Command)
     & wsl.exe -d $Distro -u root -- bash -lc $Command
     if ($LASTEXITCODE -ne 0) {
-        throw "WSL command failed with exit code $LASTEXITCODE: $Command"
+        throw "WSL command failed with exit code ${LASTEXITCODE}: $Command"
     }
 }
 
