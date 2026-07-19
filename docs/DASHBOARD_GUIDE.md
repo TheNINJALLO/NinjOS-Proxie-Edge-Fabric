@@ -1,5 +1,11 @@
 # Dashboard Management Guide
 
+The dashboard adjusts its navigation to the signed-in account. Viewers receive
+the read-only operational picture, operators also receive daily controls, admins
+receive configuration and security tools, and the owner alone receives **Team &
+Access**. This keeps routine work focused and avoids presenting controls that an
+account cannot use.
+
 ## Backends & Sessions
 
 The Backend Registry provides complete server management:
@@ -11,6 +17,18 @@ The Backend Registry provides complete server management:
 - Change the primary backend and routing mode
 - Delete a backend
 - Jump directly to its companion builder
+
+Live reachability, latency, and active-session counts are displayed in the same
+registry row as each backend's configuration. There is no separate duplicate
+backend table to reconcile.
+
+## Team & Access
+
+The owner uses this page to maintain their own credentials and individual staff
+accounts. Create admin, operator, or viewer accounts; change a role; reset a
+password; disable access temporarily; or delete an account. Account changes are
+written to the audit log, and existing sessions are revoked whenever access or
+credentials change.
 
 A public UDP port must already exist as a Pterodactyl allocation and must be
 listed in `edge.managed_public_udp_ports`.
@@ -35,7 +53,7 @@ discord
 
 Saving validates the full unified configuration before restarting services.
 
-### Unified Configuration
+### Advanced Configuration
 
 The advanced editor exposes the complete canonical INI file. Use it for custom
 or future keys not yet represented in the structured editor.

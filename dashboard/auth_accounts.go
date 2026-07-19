@@ -498,3 +498,215 @@ func (d *dashboard) handleOwnerAccount(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 405, map[string]string{"error": "Method not allowed"})
 	}
 }
+
+type dashboardUserRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+}
+
+func normalizeDashboardRole(role string) (string, error) {
+	role = strings.ToLower(strings.TrimSpace(role))
+	switch role {
+	case "admin", "operator", "viewer":
+		return role, nil
+	default:
+		return "", errors.New("Role must be admin, operator, or viewer")
+	}
+}
+
+func managedDashboardUser(user dashboardUser) bool {
+	return user.PasswordHash == "" && user.TokenHash != ""
+}
+
+func publicDashboardUser(user dashboardUser) map[string]any {
+	authentication := "password"
+	if managedDashboardUser(user) {
+		authentication = "startup token"
+	}
+	return map[string]any{
+		"username":       user.Username,
+		"role":           strings.ToLower(user.Role),
+		"enabled":        user.Enabled,
+		"managed":        managedDashboardUser(user),
+		"authentication": authentication,
+		"totpEnabled":    user.TOTPSecret != "",
+	}
+}
+
+func findDashboardUser(users []dashboardUser, username string) int {
+	for index, user := range users {
+		if strings.EqualFold(strings.TrimSpace(user.Username), strings.TrimSpace(username)) {
+			return index
+		}
+	}
+	return -1
+}
+
+func (d *dashboard) handleDashboardUsers(w http.ResponseWriter, r *http.Request) {
+	actor := principalFromRequest(r)
+	switch r.Method {
+	case http.MethodGet:
+		payload := d.loadUsersFile()
+		users := make([]map[string]any, 0, len(payload.Users))
+		for _, user := range payload.Users {
+			users = append(users, publicDashboardUser(user))
+		}
+		sort.Slice(users, func(i, j int) bool {
+			leftOwner := users[i]["role"] == "owner"
+			rightOwner := users[j]["role"] == "owner"
+			if leftOwner != rightOwner {
+				return leftOwner
+			}
+			return strings.ToLower(fmt.Sprint(users[i]["username"])) < strings.ToLower(fmt.Sprint(users[j]["username"]))
+		})
+		writeJSON(w, 200, map[string]any{"users": users, "roles": []string{"admin", "operator", "viewer"}})
+
+	case http.MethodPost:
+		var body dashboardUserRequest
+		if json.NewDecoder(io.LimitReader(r.Body, 64*1024)).Decode(&body) != nil {
+			writeJSON(w, 400, map[string]string{"error": "Invalid JSON"})
+			return
+		}
+		body.Username = strings.TrimSpace(body.Username)
+		if err := validateOwnerUsername(body.Username); err != nil {
+			writeJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		role, err := normalizeDashboardRole(body.Role)
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := validateOwnerPassword(body.Username, body.Password); err != nil {
+			writeJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		hash, salt, iterations, err := newPasswordCredentials(body.Password)
+		if err != nil {
+			writeJSON(w, 500, map[string]string{"error": "Unable to secure account password"})
+			return
+		}
+		d.authMu.Lock()
+		payload := d.loadUsersFile()
+		if findDashboardUser(payload.Users, body.Username) >= 0 {
+			d.authMu.Unlock()
+			writeJSON(w, 409, map[string]string{"error": "A dashboard account with that username already exists"})
+			return
+		}
+		user := dashboardUser{Username: body.Username, Role: role, PasswordHash: hash, PasswordSalt: salt, PasswordIterations: iterations, Enabled: true}
+		payload.Users = append(payload.Users, user)
+		err = d.saveUsersFile(payload)
+		d.authMu.Unlock()
+		if err != nil {
+			writeJSON(w, 500, map[string]string{"error": "Unable to save dashboard account"})
+			return
+		}
+		d.appendAudit(r, actor, "dashboard.user.create", "success", map[string]any{"username": user.Username, "role": user.Role})
+		writeJSON(w, 201, publicDashboardUser(user))
+
+	case http.MethodPut:
+		var body dashboardUserRequest
+		if json.NewDecoder(io.LimitReader(r.Body, 64*1024)).Decode(&body) != nil {
+			writeJSON(w, 400, map[string]string{"error": "Invalid JSON"})
+			return
+		}
+		body.Username = strings.TrimSpace(body.Username)
+		role, err := normalizeDashboardRole(body.Role)
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		if body.Password != "" {
+			if err := validateOwnerPassword(body.Username, body.Password); err != nil {
+				writeJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+		}
+		d.authMu.Lock()
+		payload := d.loadUsersFile()
+		index := findDashboardUser(payload.Users, body.Username)
+		if index < 0 {
+			d.authMu.Unlock()
+			writeJSON(w, 404, map[string]string{"error": "Dashboard account was not found"})
+			return
+		}
+		user := payload.Users[index]
+		if strings.EqualFold(user.Role, "owner") {
+			d.authMu.Unlock()
+			writeJSON(w, 409, map[string]string{"error": "Use Owner Account to change the owner login"})
+			return
+		}
+		if managedDashboardUser(user) {
+			d.authMu.Unlock()
+			writeJSON(w, 409, map[string]string{"error": "Startup-token accounts are managed through environment configuration"})
+			return
+		}
+		user.Role = role
+		if body.Enabled != nil {
+			user.Enabled = *body.Enabled
+		}
+		if body.Password != "" {
+			hash, salt, iterations, credentialErr := newPasswordCredentials(body.Password)
+			if credentialErr != nil {
+				d.authMu.Unlock()
+				writeJSON(w, 500, map[string]string{"error": "Unable to secure account password"})
+				return
+			}
+			user.PasswordHash = hash
+			user.PasswordSalt = salt
+			user.PasswordIterations = iterations
+			user.TokenHash = ""
+		}
+		payload.Users[index] = user
+		err = d.saveUsersFile(payload)
+		d.authMu.Unlock()
+		if err != nil {
+			writeJSON(w, 500, map[string]string{"error": "Unable to update dashboard account"})
+			return
+		}
+		if d.ledger != nil {
+			d.ledger.revokeUserSessions(user.Username)
+		}
+		d.appendAudit(r, actor, "dashboard.user.update", "success", map[string]any{"username": user.Username, "role": user.Role, "enabled": user.Enabled, "passwordReset": body.Password != ""})
+		writeJSON(w, 200, publicDashboardUser(user))
+
+	case http.MethodDelete:
+		var body dashboardUserRequest
+		if json.NewDecoder(io.LimitReader(r.Body, 64*1024)).Decode(&body) != nil {
+			writeJSON(w, 400, map[string]string{"error": "Invalid JSON"})
+			return
+		}
+		body.Username = strings.TrimSpace(body.Username)
+		d.authMu.Lock()
+		payload := d.loadUsersFile()
+		index := findDashboardUser(payload.Users, body.Username)
+		if index < 0 {
+			d.authMu.Unlock()
+			writeJSON(w, 404, map[string]string{"error": "Dashboard account was not found"})
+			return
+		}
+		user := payload.Users[index]
+		if strings.EqualFold(user.Role, "owner") || managedDashboardUser(user) {
+			d.authMu.Unlock()
+			writeJSON(w, 409, map[string]string{"error": "This account cannot be removed here"})
+			return
+		}
+		payload.Users = append(payload.Users[:index], payload.Users[index+1:]...)
+		err := d.saveUsersFile(payload)
+		d.authMu.Unlock()
+		if err != nil {
+			writeJSON(w, 500, map[string]string{"error": "Unable to remove dashboard account"})
+			return
+		}
+		if d.ledger != nil {
+			d.ledger.revokeUserSessions(user.Username)
+		}
+		d.appendAudit(r, actor, "dashboard.user.delete", "success", map[string]any{"username": user.Username, "role": user.Role})
+		writeJSON(w, 200, map[string]any{"deleted": true, "username": user.Username})
+
+	default:
+		writeJSON(w, 405, map[string]string{"error": "Method not allowed"})
+	}
+}

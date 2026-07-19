@@ -10,6 +10,8 @@ const state = {
   secrets: [],
   companionManager: null,
   selectedSecret: null,
+  users: [],
+  selectedUser: null,
   packetsPaused: false,
   traffic: [],
   pollTimers: [],
@@ -27,9 +29,24 @@ const views = {
   transfers: "Transfer Broker",
   events: "Events & Discord",
   audit: "Audit Log",
+  team: "Team & Access",
   configuration: "Configuration & Secrets",
   controls: "Controls",
 };
+
+const roleRank = { viewer: 10, moderator: 20, operator: 30, admin: 40, owner: 50 };
+
+function updateNavigation(role = "viewer") {
+  const rank = roleRank[role] || 0;
+  $$("#nav button").forEach((button) => {
+    const required = button.dataset.minRole;
+    button.hidden = button.dataset.view === "team"
+      ? role !== "owner"
+      : Boolean(required && rank < (roleRank[required] || 0));
+  });
+  const active = $("#nav button.active");
+  if (active?.hidden) $("#nav button[data-view='overview']")?.click();
+}
 
 function fmtBytes(value = 0) {
   const n = Number(value) || 0;
@@ -300,6 +317,7 @@ $$("#nav button").forEach((button) =>
     if (view === "transfers") refreshTransfers();
     if (view === "backends") refreshBackendRegistry();
     if (view === "configuration") refreshUnifiedConfiguration();
+    if (view === "team") refreshDashboardUsers();
   }),
 );
 
@@ -440,6 +458,7 @@ function renderState(data) {
   $("#lastRefresh").textContent = `Updated ${new Date().toLocaleTimeString()}`;
   $("#roleBadge").textContent =
     `${data.principal?.username || "unknown"} · ${data.principal?.role || "unknown"}`;
+  updateNavigation(data.principal?.role);
   $("#ownerAccountPanel").style.display = data.principal?.role === "owner" ? "block" : "none";
   if (data.principal?.role === "owner" && data.principal?.username !== "recovery") {
     $("#accountUsername").value = data.principal.username;
@@ -564,14 +583,6 @@ function renderState(data) {
 function renderBackends(data) {
   const gateway = data.gateway || {};
   const backends = gateway.backends || [];
-  $("#routingLabel").textContent = gateway.routingMode || "";
-  $("#routingMode").value = gateway.routingMode || "failover";
-  $("#backendsTable").innerHTML = backends
-    .map(
-      (item) =>
-        `<tr><td><b>${esc(item.name)}</b></td><td>${esc(item.host)}:${item.port}</td><td><span class="status ${item.enabled && item.healthy ? "good" : item.enabled ? "bad" : "warn"}">${item.enabled ? (item.healthy ? "Healthy" : "Offline") : "Disabled"}</span></td><td>${Number(item.latencyMs || 0).toFixed(2)} ms</td><td>${item.activeSessions || 0}</td><td>${item.fallback ? "Fallback" : "Primary pool"}<br><small>${esc(item.protectionProfile || "default")} profile</small></td></tr>`,
-    )
-    .join("");
   $("#backendSelect").innerHTML = backends
     .map(
       (item) => `<option value="${esc(item.name)}">${esc(item.name)}</option>`,
@@ -666,6 +677,7 @@ function renderBackendRegistry(data) {
   state.registry = data;
   const topology = data.topology || {};
   const backends = topology.backends || [];
+  const liveBackends = state.data?.gateway?.backends || [];
   const transferPorts = data.availableTransferPorts || [];
   const transferSummary = $("#transferPortAvailability");
   if (transferSummary) {
@@ -693,6 +705,9 @@ function renderBackendRegistry(data) {
   $("#backendRegistryTable").innerHTML =
     backends
       .map((backend) => {
+        const live = liveBackends.find(
+          (item) => (item.name || item.id) === backend.id,
+        );
         const route =
           backend.publicPort > 0
             ? `:${backend.publicPort}/UDP`
@@ -705,7 +720,7 @@ function renderBackendRegistry(data) {
         <td><b>${backend.connectionMode === "full_proxy" ? "Full Proxy" : "Transparent Auth"}</b><br><small>${esc(backend.backendAdapter || "proxy_only")} · backend online-mode=${backend.backendOnlineMode ? "true" : "false"}</small></td>
         <td>${esc(backend.profile || backend.id)}<br><small>capacity ${backend.capacity || 50}${backend.requireProxyIdentity ? " · identity required" : ""}</small></td>
         <td><code>${esc(secret)}</code></td>
-        <td><span class="status ${backend.enabled ? "good" : "warn"}">${backend.enabled ? "Enabled" : "Disabled"}</span>${backend.fallback ? "<br><small>Fallback</small>" : ""}</td>
+        <td><span class="status ${!backend.enabled ? "warn" : live?.healthy ? "good" : "bad"}">${!backend.enabled ? "Disabled" : live?.healthy ? "Healthy" : "Offline"}</span><br><small>${live ? `${Number(live.latencyMs || 0).toFixed(1)} ms · ${live.activeSessions || 0} sessions` : "Awaiting health check"}${backend.fallback ? " · fallback" : ""}</small></td>
         <td><div class="button-row compact"><button class="ghost backend-test" data-id="${esc(backend.id)}">Test</button><button class="ghost backend-companion" data-id="${esc(backend.id)}">Companion</button><button class="ghost backend-edit" data-id="${esc(backend.id)}">Edit</button><button class="danger backend-delete" data-id="${esc(backend.id)}">Delete</button></div></td>
       </tr>`;
       })
@@ -1640,6 +1655,91 @@ function renderDiscord(discord) {
   ].join("");
 }
 
+function renderDashboardUsers() {
+  $("#dashboardUsersTable").innerHTML = state.users.map((user) => {
+    const protectedAccount = user.role === "owner" || user.managed;
+    const actions = protectedAccount
+      ? `<span class="muted">${user.role === "owner" ? "Owner account" : "Managed externally"}</span>`
+      : `<div class="button-row compact"><button class="ghost user-edit" data-username="${esc(user.username)}">Edit</button><button class="danger user-delete" data-username="${esc(user.username)}">Delete</button></div>`;
+    return `<tr>
+      <td><b>${esc(user.username)}</b>${user.totpEnabled ? "<br><small>Two-step verification enabled</small>" : ""}</td>
+      <td><span class="account-role">${esc(user.role)}</span></td>
+      <td>${esc(user.authentication)}</td>
+      <td><span class="status ${user.enabled ? "good" : "warn"}">${user.enabled ? "Active" : "Disabled"}</span></td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="5">No dashboard accounts were found.</td></tr>';
+
+  $$(".user-edit").forEach((button) => button.addEventListener("click", () => {
+    openUserDialog(state.users.find((user) => user.username === button.dataset.username));
+  }));
+  $$(".user-delete").forEach((button) => button.addEventListener("click", async () => {
+    const username = button.dataset.username;
+    if (!window.confirm(`Delete the dashboard account “${username}”?`)) return;
+    try {
+      await api("/api/users", { method: "DELETE", body: JSON.stringify({ username }) });
+      toast(`${username} was removed`);
+      await refreshDashboardUsers();
+    } catch (error) {
+      toast(error.message);
+    }
+  }));
+}
+
+async function refreshDashboardUsers() {
+  if (state.data?.principal?.role !== "owner") return;
+  try {
+    const data = await api("/api/users");
+    state.users = data.users || [];
+    renderDashboardUsers();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+function openUserDialog(user = null) {
+  state.selectedUser = user || null;
+  const editing = Boolean(user);
+  $("#userDialogTitle").textContent = editing ? "Edit Team Account" : "Add Team Account";
+  $("#userDialogDescription").textContent = editing
+    ? `Update ${user.username}’s access or reset their password.`
+    : "Create an individual dashboard login.";
+  $("#userUsername").value = user?.username || "";
+  $("#userUsername").disabled = editing;
+  $("#userRole").value = user?.role || "operator";
+  $("#userPassword").value = "";
+  $("#userPassword").required = !editing;
+  $("#userPasswordHelp").textContent = editing
+    ? "Leave blank to keep the current password. New passwords need at least 12 characters."
+    : "At least 12 characters.";
+  $("#userEnabled").checked = user?.enabled ?? true;
+  $("#userEnabledLabel").hidden = !editing;
+  $("#saveUserButton").textContent = editing ? "Save Changes" : "Create Account";
+  $("#userDialog").showModal();
+}
+
+async function saveDashboardUser(event) {
+  event.preventDefault();
+  const editing = Boolean(state.selectedUser);
+  const payload = {
+    username: editing ? state.selectedUser.username : $("#userUsername").value.trim(),
+    role: $("#userRole").value,
+    password: $("#userPassword").value,
+    enabled: $("#userEnabled").checked,
+  };
+  try {
+    await api("/api/users", {
+      method: editing ? "PUT" : "POST",
+      body: JSON.stringify(payload),
+    });
+    $("#userDialog").close();
+    toast(editing ? `${payload.username} was updated` : `${payload.username} can now sign in`);
+    await refreshDashboardUsers();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
 async function control(command, argument = "", argument2 = "") {
   try {
     await api("/api/control", {
@@ -1656,9 +1756,6 @@ $$("[data-command]").forEach((button) =>
   button.addEventListener("click", () =>
     control(button.dataset.command, button.dataset.argument || ""),
   ),
-);
-$("#applyRouting").addEventListener("click", () =>
-  control("routing", $("#routingMode").value),
 );
 $("#banButton").addEventListener("click", () =>
   control("ban", $("#banIp").value.trim(), $("#banSeconds").value),
@@ -1732,6 +1829,9 @@ $("#downloadCompanionProperties").addEventListener("click", () => downloadCompan
 $("#downloadCompanionPackage").addEventListener("click", () => downloadCompanion("package"));
 $("#downloadCompanionSource").addEventListener("click", () => downloadCompanion("source"));
 $("#refreshButton").addEventListener("click", refreshAll);
+$("#addUserButton").addEventListener("click", () => openUserDialog());
+$("#closeUserDialog").addEventListener("click", () => $("#userDialog").close());
+$("#userForm").addEventListener("submit", saveDashboardUser);
 
 async function refreshAll() {
   await refreshState();
@@ -1744,6 +1844,7 @@ async function refreshAll() {
     refreshAudit(),
     refreshBackendRegistry(),
     refreshUnifiedConfiguration(),
+    refreshDashboardUsers(),
   ]);
 }
 $("#ownerAccountForm").addEventListener("submit", async (event) => {

@@ -43,7 +43,7 @@ It combines a native UDP edge, a protocol-aware Bedrock session core, a browser-
 - Mix native Microsoft/Xbox authentication and proxy-owned sessions in one network.
 - Route players across Endstone and vanilla backends with per-backend policy.
 - Preserve verified identity, XUID-based roles, operator state, and command permissions.
-- Operate from a web dashboard with account roles, optional TOTP, Secret Vault, health actions, metrics, audit history, transfers, and redacted support bundles.
+- Operate from a role-aware web dashboard where the owner can maintain individual admin, operator, and viewer accounts alongside TOTP, secrets, health actions, metrics, audit history, transfers, and redacted support bundles.
 - Deploy through Pterodactyl, native Linux/systemd, Docker, or Windows through WSL2.
 - Integrate Endstone with a compiled companion plugin or Mojang BDS with a Script API behavior pack and optional host agent.
 - Install from a complete offline runtime or consume versioned GitHub container/npm packages.

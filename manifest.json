@@ -74,6 +74,8 @@
     "password-owner-login",
     "single-use-setup-code",
     "dashboard-owner-account-management",
+    "owner-managed-dashboard-subaccounts",
+    "role-aware-dashboard-navigation",
     "emergency-recovery-session",
     "windows-wsl2-installer",
     "wsl2-mirrored-networking",

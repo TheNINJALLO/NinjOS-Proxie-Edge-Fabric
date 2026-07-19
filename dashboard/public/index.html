@@ -15,15 +15,16 @@
         </div>
         <nav id="nav">
           <button class="active" data-view="overview">Network Pulse</button>
-          <button data-view="backends">Backends & Sessions</button>
+          <button data-view="backends" data-min-role="admin">Backends & Sessions</button>
           <button data-view="players">Network Players</button>
           <button data-view="packets">Packet Inspector</button>
-          <button data-view="policy">Firewall & Policy</button>
+          <button data-view="policy" data-min-role="admin">Firewall & Policy</button>
           <button data-view="transfers">Transfer Broker</button>
           <button data-view="events">Events & Discord</button>
-          <button data-view="audit">Audit Log</button>
-          <button data-view="configuration">Configuration & Secrets</button>
-          <button data-view="controls">Controls</button>
+          <button data-view="audit" data-min-role="admin">Audit Log</button>
+          <button id="teamNavButton" data-view="team" hidden>Team & Access</button>
+          <button data-view="configuration" data-min-role="admin">Configuration & Secrets</button>
+          <button data-view="controls" data-min-role="operator">Controls</button>
         </nav>
         <div class="connection-card">
           <span id="connectionDot" class="dot"></span>
@@ -139,36 +140,16 @@
               Backend changes are saved to the unified configuration first, then only the gateway restarts.
             </div>
           </article>
-          <div class="grid-two">
-            <article class="panel">
-              <div class="panel-head">
-                <h2>Configured Backends</h2>
-                <span id="routingLabel"></span>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Runtime Capacity</h2>
+                <p>Host and container resources available to the edge fabric.</p>
               </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Address</th>
-                      <th>Status</th>
-                      <th>Latency</th>
-                      <th>Sessions</th>
-                      <th>Role</th>
-                    </tr>
-                  </thead>
-                  <tbody id="backendsTable"></tbody>
-                </table>
-              </div>
-            </article>
-            <article class="panel">
-              <div class="panel-head">
-                <h2>System Metrics</h2>
-                <span>container</span>
-              </div>
-              <div id="systemMetrics" class="detail-grid"></div>
-            </article>
-          </div>
+              <span>live</span>
+            </div>
+            <div id="systemMetrics" class="detail-grid"></div>
+          </article>
           <article class="panel">
             <div class="panel-head">
               <h2>Portal / Static Routes</h2>
@@ -605,7 +586,7 @@
           </article>
         </section>
 
-        <section id="view-configuration" class="view">
+        <section id="view-team" class="view">
           <article class="panel" id="ownerAccountPanel">
             <div class="panel-head">
               <div>
@@ -642,6 +623,45 @@
           <article class="panel">
             <div class="panel-head">
               <div>
+                <h2>Team Accounts</h2>
+                <p>
+                  Give each person an individual login. Roles limit what they can
+                  see and change, and disabled accounts are signed out immediately.
+                </p>
+              </div>
+              <button id="addUserButton">Add Account</button>
+            </div>
+            <div class="role-summary">
+              <div><strong>Admin</strong><span>Configuration, security, backends, audit, and operations.</span></div>
+              <div><strong>Operator</strong><span>Daily controls and incident response without configuration access.</span></div>
+              <div><strong>Viewer</strong><span>Read-only network status, players, traffic, and history.</span></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Account</th>
+                    <th>Role</th>
+                    <th>Sign-in</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardUsersTable"></tbody>
+              </table>
+            </div>
+            <div class="note">
+              Startup-token accounts are read-only here because their credentials
+              come from environment variables. Manage those accounts in your host
+              or Pterodactyl Startup settings.
+            </div>
+          </article>
+        </section>
+
+        <section id="view-configuration" class="view">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
                 <h2>Managed Settings</h2>
                 <p>
                   Edit every normal Edge Fabric, dashboard, companion, transfer,
@@ -667,10 +687,10 @@
             <article class="panel">
               <div class="panel-head">
                 <div>
-                  <h2>Unified Configuration</h2>
+                  <h2>Advanced Configuration</h2>
                   <p>
-                    The complete canonical configuration. Dashboard-managed secret
-                    values appear only as <code>[REDACTED]</code>.
+                    Edit the canonical INI only for keys not available in Managed
+                    Settings. Dashboard-managed secrets remain <code>[REDACTED]</code>.
                   </p>
                 </div>
                 <span id="unifiedConfigPath">loading</span>
@@ -771,8 +791,7 @@
         </section>
 
         <section id="view-controls" class="view">
-          <div class="grid-two">
-            <article class="panel">
+          <article class="panel">
               <div class="panel-head">
                 <h2>Gateway State</h2>
                 <span>live command queue</span>
@@ -796,22 +815,7 @@
                   Disable Drain Mode
                 </button>
               </div>
-            </article>
-            <article class="panel">
-              <div class="panel-head">
-                <h2>Routing</h2>
-                <span>new sessions only</span>
-              </div>
-              <label
-                >Routing mode<select id="routingMode">
-                  <option value="primary">Primary only</option>
-                  <option value="failover">Failover</option>
-                  <option value="round_robin">Round robin</option>
-                  <option value="least_sessions">Least sessions</option>
-                </select></label
-              ><button id="applyRouting">Apply Routing</button>
-            </article>
-          </div>
+          </article>
           <div class="grid-two">
             <article class="panel">
               <div class="panel-head">
@@ -1014,6 +1018,40 @@
         <div class="button-row">
           <button id="generateSecret" type="button" class="ghost">Generate Secure Value</button>
           <button id="saveSecret" type="submit">Save & Restart Services</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="userDialog">
+      <form id="userForm">
+        <div class="dialog-head">
+          <div>
+            <h2 id="userDialogTitle">Add Team Account</h2>
+            <p id="userDialogDescription">Create an individual dashboard login.</p>
+          </div>
+          <button id="closeUserDialog" type="button" class="ghost">Close</button>
+        </div>
+        <div class="form-grid">
+          <label>Username
+            <input id="userUsername" autocomplete="off" minlength="3" maxlength="32" required />
+          </label>
+          <label>Role
+            <select id="userRole">
+              <option value="admin">Admin</option>
+              <option value="operator">Operator</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </label>
+          <label id="userPasswordLabel">Password
+            <input id="userPassword" type="password" autocomplete="new-password" minlength="12" />
+            <small id="userPasswordHelp">At least 12 characters.</small>
+          </label>
+          <label class="checkbox-label" id="userEnabledLabel">
+            <input id="userEnabled" type="checkbox" checked /> Account enabled
+          </label>
+        </div>
+        <div class="button-row">
+          <button id="saveUserButton" type="submit">Create Account</button>
         </div>
       </form>
     </dialog>

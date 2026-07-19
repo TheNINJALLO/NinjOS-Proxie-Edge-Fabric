@@ -32,9 +32,29 @@ enabled, also enter the current six-digit code.
 Background dashboard polling begins only after authentication succeeds. Failed
 sign-ins do not erase the username, password, or TOTP fields.
 
-## Change the username or password
+## Team accounts and roles
 
-Sign in as the owner, open **Configuration & Secrets**, and use **Owner Account**.
+The owner can open **Team & Access** and give each administrator or staff member
+an individual password-based account. Accounts can be edited, disabled, have
+their password reset, or be removed without changing the owner's credentials.
+Disabling, editing, or deleting an account immediately ends its active sessions.
+
+Choose the narrowest role that fits the person's work:
+
+| Role | Intended access |
+| --- | --- |
+| Admin | Backends, firewall policy, configuration, secrets, audit history, and daily operations |
+| Operator | Daily controls and incident response without configuration or secret access |
+| Viewer | Read-only network status, players, traffic, transfers, and event history |
+
+Only the owner can manage team accounts. The owner account itself cannot be
+disabled or deleted from this page. Accounts supplied through startup environment
+variables are identified as **Managed externally** and must be changed in the host
+or Pterodactyl Startup settings.
+
+## Change the owner username or password
+
+Sign in as the owner, open **Team & Access**, and use **Owner Account**.
 Enter the current password, the desired username, and the new password twice.
 Changing the owner login invalidates every other browser session.
 
@@ -48,7 +68,7 @@ Username: recovery
 Password: <DASHBOARD_RECOVERY_TOKEN>
 ```
 
-Open **Configuration & Secrets → Owner Account**, choose a replacement username
+Open **Team & Access > Owner Account**, choose a replacement username
 and password, and save. The current-password field is not required while using the
 recovery session.
 
