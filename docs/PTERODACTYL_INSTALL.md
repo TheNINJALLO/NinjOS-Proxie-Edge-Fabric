@@ -9,7 +9,6 @@ Use these files from the deployment ZIP:
 ```text
 egg-ninjos-proxie-edge-fabric-v7.3.1.json
 NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
-NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz.sha256
 ```
 
 The runtime already contains the gateway, dashboard, Bedrock Session Core dependencies, vanilla bridge pack, Linux and Windows vanilla agents, and Endstone source package.
@@ -43,10 +42,10 @@ Private backend ports should be separate server allocations and must not be publ
 
 1. Back up `config/` and `runtime/` when upgrading.
 2. Use **Reinstall** after assigning the egg.
-3. Upload the runtime archive and matching checksum to the proxy server root.
+3. Upload the runtime archive to the proxy server root.
 4. Keep both filenames unchanged.
 
-The bootstrap validates the checksum, extracts into a temporary staging directory, verifies required files, preserves `config/` and `runtime/`, then installs the release atomically.
+The bootstrap validates the archive structure, extracts into a temporary staging directory, verifies required files, preserves `config/` and `runtime/`, then installs the release atomically. If you set `RUNTIME_SHA256` yourself, it also verifies that digest before extraction.
 
 ## 4. Startup variables
 
@@ -119,4 +118,4 @@ For every route:
 
 ## Upgrading
 
-Upload the new runtime and checksum, set `FORCE_RUNTIME_INSTALL=1` for one start when needed, then return it to `0`. Preserve `config/` and `runtime/` backups before every upgrade.
+Upload the new runtime, set `FORCE_RUNTIME_INSTALL=1` for one start when needed, then return it to `0`. Preserve `config/` and `runtime/` backups before every upgrade.

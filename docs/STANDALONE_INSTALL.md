@@ -16,11 +16,10 @@ and a C++ compiler are only needed when building from source.
 
 ## Recommended automated installation
 
-1. Download the matching runtime archive and checksum file from the GitHub Release:
+1. Download the runtime archive from the GitHub Release:
 
    ```text
    NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz
-   NinjOS-Proxie-Edge-Fabric-v7.3.1-Runtime.tar.gz.sha256
    ```
 
 2. Download or clone the source repository, then run the installer as root:
