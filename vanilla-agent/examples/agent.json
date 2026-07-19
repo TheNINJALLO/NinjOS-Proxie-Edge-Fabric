@@ -1,0 +1,10 @@
+{
+  "serverId": "creative",
+  "dashboardUrl": "http://127.0.0.1:25571",
+  "sharedSecret": "replace-with-the-creative-backend-secret",
+  "permissionsFile": "/opt/bedrock/permissions.json",
+  "processName": "bedrock_server",
+  "intervalSeconds": 30,
+  "syncOperators": true,
+  "insecureHttp": false
+}

@@ -1,0 +1,15 @@
+build/
+build-local/
+dist/
+*.log
+*.so
+*.tar.gz
+*.zip
+!NinjOS-Endstone-Companion-v3.6.0-GitHub-Clean.zip
+runtime/
+gateway.conf
+config/edge-fabric.ini
+config/edge-fabric.ini.bak
+deploy/docker/.env
+.DS_Store
+Thumbs.db

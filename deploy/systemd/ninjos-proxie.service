@@ -1,0 +1,24 @@
+[Unit]
+Description=Ninj-OS Proxie Edge Fabric
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ninjos
+Group=ninjos
+WorkingDirectory=/opt/ninjos-proxie
+EnvironmentFile=/etc/ninjos-proxie.env
+ExecStart=/opt/ninjos-proxie/start-runtime.sh
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/ninjos-proxie
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

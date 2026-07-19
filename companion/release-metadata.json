@@ -1,0 +1,6 @@
+{
+  "edgeFabricVersion": "7.3.0",
+  "companionVersion": "3.6.0",
+  "defaultEndstoneVersion": "0.11.6",
+  "dashboardDefaultPort": 25571
+}

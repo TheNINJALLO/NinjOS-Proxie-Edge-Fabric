@@ -1,0 +1,18 @@
+[Unit]
+Description=Ninj-OS Vanilla BDS Host Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bedrock
+Group=bedrock
+WorkingDirectory=/opt/ninjos-vanilla-agent
+ExecStart=/opt/ninjos-vanilla-agent/ninjos-vanilla-agent --config /etc/ninjos-vanilla-agent.json
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

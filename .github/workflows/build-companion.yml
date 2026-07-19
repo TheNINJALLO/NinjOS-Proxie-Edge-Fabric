@@ -1,0 +1,103 @@
+name: Build Endstone Companion
+
+on:
+  workflow_dispatch:
+    inputs:
+      endstone_version:
+        description: Exact Endstone release without the leading v
+        required: true
+        default: '0.11.6'
+        type: string
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'companion/**'
+      - '.github/workflows/build-companion.yml'
+
+permissions:
+  contents: write
+
+env:
+  DEFAULT_ENDSTONE_VERSION: '0.11.6'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    container: ubuntu:22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Endstone version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ inputs.endstone_version || '0.11.6' }}"
+          version="${version#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo "Invalid Endstone version: $version" >&2; exit 1; }
+          echo "endstone_version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y ca-certificates cmake file git ninja-build python3 unzip zip clang libc++-dev libc++abi-dev lld
+
+      - name: Generate companion documentation
+        run: python3 companion/scripts/generate-documentation.py
+
+      - name: Configure and compile
+        env:
+          ENDSTONE_VERSION: ${{ steps.version.outputs.endstone_version }}
+        run: |
+          cmake -S companion -B companion/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENDSTONE_API_VERSION="$ENDSTONE_VERSION" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_FLAGS='-stdlib=libc++' \
+            -DCMAKE_SHARED_LINKER_FLAGS='-stdlib=libc++'
+          cmake --build companion/build --parallel 2
+
+      - name: Package companion
+        id: package
+        env:
+          ENDSTONE_VERSION: ${{ steps.version.outputs.endstone_version }}
+        run: |
+          set -euo pipefail
+          plugin="$(find companion/build -type f -name 'ninjos_proxie_companion.so' -print -quit)"
+          [[ -f "$plugin" ]] || { echo 'Companion binary was not produced.' >&2; exit 1; }
+          root="dist/companion-package"
+          mkdir -p "$root/plugins/ninjos_proxie_companion"
+          cp "$plugin" "$root/plugins/ninjos_proxie_companion.so"
+          cp companion/companion.properties.example "$root/plugins/ninjos_proxie_companion/companion.properties"
+          cp companion/docs/COMPLETE_SETUP.md "$root/COMPANION-HOWTO.md"
+          cp companion/docs/CONFIGURATION.md "$root/CONFIGURATION.md"
+          cat > "$root/BUILD-INFO.txt" <<INFO
+          Plugin: Ninj-OS Endstone Companion
+          Plugin version: 3.6.0
+          Endstone version: ${ENDSTONE_VERSION}
+          Platform: Linux x86_64
+          Git commit: ${GITHUB_SHA}
+          INFO
+          (cd "$root" && sha256sum plugins/ninjos_proxie_companion.so > SHA256SUMS.txt)
+          archive="NinjOS-Endstone-Companion-v3.6.0-Endstone-${ENDSTONE_VERSION}-Linux-x86_64.zip"
+          (cd "$root" && zip -r "../$archive" .)
+          sha256sum "dist/$archive" > "dist/$archive.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Endstone-Companion-${{ steps.version.outputs.endstone_version }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+
+      - name: Attach to tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" dist/*.zip dist/*.sha256 --clobber

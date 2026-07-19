@@ -1,0 +1,33 @@
+services:
+  ninjos-proxie:
+    container_name: ninjos-proxie
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      NINJOS_ROOT_DIR: /opt/ninjos
+      DASHBOARD_TOKEN: ${DASHBOARD_TOKEN:-}
+      DASHBOARD_SETUP_CODE: ${DASHBOARD_SETUP_CODE:-}
+      DASHBOARD_RECOVERY_TOKEN: ${DASHBOARD_RECOVERY_TOKEN:-}
+      SESSION_CORE_TOKEN: ${SESSION_CORE_TOKEN:-}
+      COMPANION_SHARED_SECRET: ${COMPANION_SHARED_SECRET:?Set COMPANION_SHARED_SECRET in deploy/docker/.env}
+      DASHBOARD_OPERATOR_TOKEN: ${DASHBOARD_OPERATOR_TOKEN:-}
+      DASHBOARD_READONLY_TOKEN: ${DASHBOARD_READONLY_TOKEN:-}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      DASHBOARD_TOTP_SECRET: ${DASHBOARD_TOTP_SECRET:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-}
+      COMPANION_KINGDOM_SECRET: ${COMPANION_KINGDOM_SECRET:-}
+      COMPANION_ZOO_SECRET: ${COMPANION_ZOO_SECRET:-}
+      COMPANION_LOBBY_SECRET: ${COMPANION_LOBBY_SECRET:-}
+      VANILLA_AGENT_TOKEN: ${VANILLA_AGENT_TOKEN:-}
+    volumes:
+      - ninjos-config:/opt/ninjos/config
+      - ninjos-runtime:/opt/ninjos/runtime
+
+volumes:
+  ninjos-config:
+  ninjos-runtime:

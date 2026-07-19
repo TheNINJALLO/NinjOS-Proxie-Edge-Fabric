@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ninj-OS Edge Fabric v7.3.0</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">N</div>
+          <div><strong>Ninj-OS</strong><span>EDGE FABRIC v7.3.0</span></div>
+        </div>
+        <nav id="nav">
+          <button class="active" data-view="overview">Network Pulse</button>
+          <button data-view="backends">Backends & Sessions</button>
+          <button data-view="players">Network Players</button>
+          <button data-view="packets">Packet Inspector</button>
+          <button data-view="policy">Firewall & Policy</button>
+          <button data-view="transfers">Transfer Broker</button>
+          <button data-view="events">Events & Discord</button>
+          <button data-view="audit">Audit Log</button>
+          <button data-view="configuration">Configuration & Secrets</button>
+          <button data-view="controls">Controls</button>
+        </nav>
+        <div class="connection-card">
+          <span id="connectionDot" class="dot"></span>
+          <div>
+            <b id="connectionState">Connecting</b
+            ><small id="lastRefresh">Waiting for data</small>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header>
+          <div>
+            <p class="eyebrow">TRANSPARENT IDENTITY GATEWAY</p>
+            <h1 id="pageTitle">Network Pulse</h1>
+          </div>
+          <div class="header-actions">
+            <span id="roleBadge" class="badge">Unknown role</span>
+            <span id="modeBadge" class="badge">Loading</span>
+            <button id="refreshButton" class="ghost">Refresh</button>
+            <button id="tokenButton" class="ghost">Dashboard Login</button>
+          </div>
+        </header>
+
+        <section id="view-overview" class="view active">
+          <div id="securityWarnings" class="warning-stack"></div>
+          <div class="metrics-grid" id="metricCards"></div>
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Traffic Flow</h2>
+                <span>live</span>
+              </div>
+              <canvas id="trafficChart" height="220"></canvas>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Backend Health</h2>
+                <span id="backendSummary">Checking</span>
+              </div>
+              <div id="backendMini" class="backend-mini"></div>
+            </article>
+          </div>
+          <article class="panel overview-wide-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Endstone Performance</h2>
+                <p>Live performance and companion health for every configured backend server.</p>
+              </div>
+              <span id="endstoneSummary">Checking companion fleet</span>
+            </div>
+            <div id="endstoneMetrics" class="endstone-performance"></div>
+          </article>
+          <article class="panel overview-wide-panel">
+            <div class="panel-head">
+              <h2>Protection Activity</h2>
+              <span>firewall</span>
+            </div>
+            <div id="firewallMetrics" class="detail-grid"></div>
+          </article>
+        </section>
+
+        <section id="view-backends" class="view">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Backend Registry</h2>
+                <p>
+                  Add, edit, test, enable, or remove servers. Changes are
+                  validated before the gateway restarts.
+                </p>
+              </div>
+              <div class="button-row">
+                <button id="addBackendButton">Add Server</button
+                ><span id="backendRestartBadge" class="badge"
+                  >No restart pending</span
+                >
+              </div>
+            </div>
+            <div class="registry-settings">
+              <label
+                >Primary backend<select id="registryPrimaryBackend"></select
+              ></label>
+              <label
+                >Routing mode<select id="registryRoutingMode">
+                  <option value="primary">Primary only</option>
+                  <option value="failover">Failover</option>
+                  <option value="round_robin">Round robin</option>
+                  <option value="least_sessions">Least sessions</option>
+                </select></label
+              >
+              <button id="saveRegistrySettings">Save Routing Settings</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Server</th>
+                    <th>Backend</th>
+                    <th>Public Route</th>
+                    <th>Connection</th>
+                    <th>Profile</th>
+                    <th>Companion Secret</th>
+                    <th>State</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="backendRegistryTable"></tbody>
+              </table>
+            </div>
+            <div class="note" id="managedPortNote"></div>
+            <div class="note" id="backendSaveStatus">
+              Backend changes are saved to the unified configuration first, then only the gateway restarts.
+            </div>
+          </article>
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Configured Backends</h2>
+                <span id="routingLabel"></span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Address</th>
+                      <th>Status</th>
+                      <th>Latency</th>
+                      <th>Sessions</th>
+                      <th>Role</th>
+                    </tr>
+                  </thead>
+                  <tbody id="backendsTable"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>System Metrics</h2>
+                <span>container</span>
+              </div>
+              <div id="systemMetrics" class="detail-grid"></div>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Portal / Static Routes</h2>
+              <span>same proxy process</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Public Proxy Port</th>
+                    <th>Destination</th>
+                    <th>Status</th>
+                    <th>Portal Address</th>
+                  </tr>
+                </thead>
+                <tbody id="staticRoutesTable"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Live Sessions</h2>
+              <span id="sessionCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Backend</th>
+                    <th>Age</th>
+                    <th>Idle</th>
+                    <th>Client Traffic</th>
+                    <th>Server Traffic</th>
+                  </tr>
+                </thead>
+                <tbody id="sessionsTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="view-players" class="view">
+          <div class="metrics-grid" id="presenceCards"></div>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Network-wide Presence</h2>
+                <p>
+                  Presence is keyed by verified XUID when available and merged
+                  across all reporting Endstone backends.
+                </p>
+              </div>
+              <span id="presenceCount">loading</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>XUID</th>
+                    <th>Current Server</th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                    <th>Address</th>
+                  </tr>
+                </thead>
+                <tbody id="presenceTable"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Companion Fleet</h2>
+              <span id="companionFleetCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Server</th>
+                    <th>Health</th>
+                    <th>TPS</th>
+                    <th>MSPT</th>
+                    <th>Players</th>
+                    <th>Queue</th>
+                    <th>Last Report</th>
+                  </tr>
+                </thead>
+                <tbody id="companionsTable"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Network XUID Profiles</h2>
+                <p>
+                  Central roles, destination access, bans, and last known
+                  server.
+                </p>
+              </div>
+              <span id="networkProfileCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>XUID</th>
+                    <th>Role</th>
+                    <th>Current Server</th>
+                    <th>Network Access</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody id="networkProfilesTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="view-packets" class="view">
+          <article class="panel packet-panel">
+            <div class="panel-head packet-head">
+              <div>
+                <h2>Rolling Packet Inspector</h2>
+                <p>
+                  Transport envelopes from the proxy and decrypted gameplay
+                  packets from Endstone.
+                </p>
+              </div>
+              <div class="packet-actions">
+                <button id="pausePackets" class="ghost">Pause</button
+                ><button id="clearPacketFilters" class="ghost">
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+            <div class="filters">
+              <select id="packetLayer">
+                <option value="all">All layers</option>
+                <option value="transport">Transport / RakNet</option>
+                <option value="gameplay">Gameplay / Endstone</option>
+              </select>
+              <select id="packetDirection">
+                <option value="">All directions</option>
+                <option value="client_to_gateway">Client → Gateway</option>
+                <option value="gateway_to_client">Gateway → Client</option>
+                <option value="client_to_server">Client → Server</option>
+                <option value="server_to_client">Server → Client</option>
+              </select>
+              <input id="packetPlayer" placeholder="Player, XUID, IP" />
+              <input id="packetId" placeholder="Packet ID" />
+              <input
+                id="packetSearch"
+                placeholder="Search name, action, backend"
+              />
+              <select id="packetLimit">
+                <option>250</option>
+                <option selected>500</option>
+                <option>1000</option>
+                <option>2500</option>
+                <option>5000</option>
+              </select>
+            </div>
+            <div class="packet-stats" id="packetStats"></div>
+            <div class="table-wrap packet-table-wrap">
+              <table class="packet-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Layer</th>
+                    <th>Direction</th>
+                    <th>Packet</th>
+                    <th>Player / Client</th>
+                    <th>Bytes</th>
+                    <th>Action</th>
+                    <th>Backend</th>
+                  </tr>
+                </thead>
+                <tbody id="packetsTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="view-policy" class="view">
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Adaptive Firewall</h2>
+                <span id="firewallMode">loading</span>
+              </div>
+              <div id="adaptiveFirewallDetails" class="detail-grid"></div>
+              <div class="note">
+                Risk decays over time. Repeated offenses trigger progressively
+                longer bans that survive gateway restarts.
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Live Policy</h2>
+                <span id="configVersionLabel">version</span>
+              </div>
+              <textarea
+                id="liveConfigEditor"
+                class="policy-editor"
+                spellcheck="false"
+              ></textarea>
+              <div class="button-row">
+                <button id="applyLiveConfig">Validate & Apply</button
+                ><button id="rollbackLiveConfig" class="ghost">Rollback</button
+                ><button id="reloadLiveConfig" class="ghost">
+                  Reload Files
+                </button>
+              </div>
+              <div id="configStatus" class="note">
+                Changes apply to new firewall decisions without dropping active
+                players.
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Destination Protection Profiles</h2>
+                <span>Kingdom · Zoo · future routes</span>
+              </div>
+              <textarea
+                id="protectionProfilesEditor"
+                class="policy-editor"
+                spellcheck="false"
+              ></textarea>
+              <div class="button-row">
+                <button id="applyProtectionProfiles">
+                  Validate & Apply Profiles
+                </button>
+              </div>
+              <div class="note">
+                Each backend can have its own datagram, packet-rate, handshake,
+                session, and incident-mode limits.
+              </div>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Highest-risk Addresses</h2>
+              <span id="riskCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Address</th>
+                    <th>Risk</th>
+                    <th>Offenses</th>
+                    <th>Ban Level</th>
+                    <th>Banned Until</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="riskTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="view-transfers" class="view">
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Transfer Broker</h2>
+                <span id="transferPoolLabel">loading</span>
+              </div>
+              <div id="transferBrokerDetails" class="detail-grid"></div>
+              <div class="note">
+                Tickets are short-lived, one-use routes through this same proxy
+                process. The player's source IP must match before the gateway
+                will consume the ticket.
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Create Test Ticket</h2>
+                <span>dashboard only</span>
+              </div>
+              <label
+                >Destination backend<select id="transferDestination"></select
+              ></label>
+              <label
+                >Source IP<input
+                  id="transferSourceIp"
+                  placeholder="203.0.113.42"
+              /></label>
+              <label
+                >Player name<input
+                  id="transferPlayer"
+                  placeholder="TheN1NJ4LL0"
+              /></label>
+              <label
+                >XUID<input
+                  id="transferXuid"
+                  placeholder="Optional for audit logging"
+              /></label>
+              <label
+                >Source server<input id="transferSourceServer" value="kingdom"
+              /></label>
+              <button id="createTransferTicket">Create Ticket</button>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Active Transfer Tickets</h2>
+              <span id="activeTransferCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Destination</th>
+                    <th>Proxy Route</th>
+                    <th>Source IP</th>
+                    <th>Expires</th>
+                    <th>Ticket</th>
+                  </tr>
+                </thead>
+                <tbody id="activeTransfersTable"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <h2>Transfer History</h2>
+              <span id="transferHistoryCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Player</th>
+                    <th>Source</th>
+                    <th>Destination</th>
+                    <th>Port</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody id="transferHistoryTable"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Signed Transfer Transactions</h2>
+                <p>
+                  Request → proxy connection → destination arrival confirmation.
+                </p>
+              </div>
+              <span id="transferTransactionCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Requested</th>
+                    <th>Player / XUID</th>
+                    <th>Route</th>
+                    <th>Proxy Port</th>
+                    <th>State</th>
+                    <th>Updated</th>
+                    <th>Failure</th>
+                  </tr>
+                </thead>
+                <tbody id="transferTransactionsTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="view-events" class="view">
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Event Stream</h2>
+                <span id="eventCount"></span>
+              </div>
+              <div id="eventsList" class="event-list"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Discord Delivery</h2>
+                <span id="discordStatus"></span>
+              </div>
+              <div id="discordDetails" class="detail-grid"></div>
+              <div class="note">
+                Use either a webhook URL or a bot token plus channel ID. Alerts
+                include backend outages, temporary bans, maintenance changes,
+                and periodic gateway/server metrics.
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-audit" class="view">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Administrative Audit Log</h2>
+                <p>
+                  Role, actor, remote address, action, result, and submitted
+                  details.
+                </p>
+              </div>
+              <span id="auditCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Actor</th>
+                    <th>Role</th>
+                    <th>Action</th>
+                    <th>Result</th>
+                    <th>Remote IP</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="view-configuration" class="view">
+          <article class="panel" id="ownerAccountPanel">
+            <div class="panel-head">
+              <div>
+                <h2>Owner Account</h2>
+                <p>
+                  Change the dashboard owner username and password. Updating the
+                  account signs out every other browser session.
+                </p>
+              </div>
+              <span>password secured</span>
+            </div>
+            <form id="ownerAccountForm" class="settings-grid">
+              <label>Owner username
+                <input id="accountUsername" autocomplete="username" minlength="3" maxlength="32" required />
+              </label>
+              <label>Current password
+                <input id="accountCurrentPassword" type="password" autocomplete="current-password" />
+              </label>
+              <label>New password
+                <input id="accountNewPassword" type="password" autocomplete="new-password" minlength="12" required />
+              </label>
+              <label>Confirm new password
+                <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="12" required />
+              </label>
+              <div class="button-row">
+                <button type="submit">Update Owner Login</button>
+              </div>
+            </form>
+            <div class="note">
+              Recovery sessions may replace the owner login without the current
+              password. Clear <code>DASHBOARD_RECOVERY_TOKEN</code> after recovery.
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Managed Settings</h2>
+                <p>
+                  Edit every normal Edge Fabric, dashboard, companion, transfer,
+                  firewall, incident, health, logging, and Discord setting without
+                  touching the INI file by hand.
+                </p>
+              </div>
+              <span>structured editor</span>
+            </div>
+            <div id="managedSettingsGrid" class="settings-sections"></div>
+            <div class="button-row">
+              <button id="saveManagedSettings">Save Managed Settings</button>
+              <button id="reloadManagedSettings" class="ghost">Reload</button>
+            </div>
+            <div class="note">
+              Backend servers and protection profiles remain in their dedicated
+              editors. The advanced INI editor below is still available for custom
+              or future keys.
+            </div>
+          </article>
+
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Unified Configuration</h2>
+                  <p>
+                    The complete canonical configuration. Dashboard-managed secret
+                    values appear only as <code>[REDACTED]</code>.
+                  </p>
+                </div>
+                <span id="unifiedConfigPath">loading</span>
+              </div>
+              <textarea
+                id="unifiedConfigEditor"
+                class="policy-editor config-editor"
+                spellcheck="false"
+              ></textarea>
+              <div class="button-row">
+                <button id="saveUnifiedConfig">Validate, Save & Restart</button>
+                <button id="reloadUnifiedConfig" class="ghost">Reload</button>
+              </div>
+              <div class="note">
+                Service keys can use populated Pterodactyl environment references or can
+                be stored securely through the Secret Vault. Empty environment references
+                are rejected. Companion shared secrets are separate from the dashboard
+                owner username, password, and browser session.
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Secret Vault</h2>
+                  <p>
+                    Set, generate, rotate, or switch service and companion keys.
+                    Values are never returned to the browser after saving. A companion
+                    secret is not a dashboard login credential.
+                  </p>
+                </div>
+                <span>mode 0600</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Purpose</th>
+                      <th>Source</th>
+                      <th>Status</th>
+                      <th>Fingerprint</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="secretSourcesTable"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Companion Builder & Downloads</h2>
+                <p>
+                  Generate a server-specific companion configuration, download the
+                  GitHub source repository, or upload the compiled artifact once and
+                  produce install-ready packages for every backend.
+                </p>
+              </div>
+              <span id="companionArtifactBadge">checking</span>
+            </div>
+            <div class="companion-builder">
+              <div class="companion-controls">
+                <label>Backend server<select id="companionBackendSelect"></select></label>
+                <label>Compiled artifact
+                  <input id="companionArtifactInput" type="file" accept=".so,.zip,application/zip" />
+                </label>
+                <div class="button-row">
+                  <button id="uploadCompanionArtifact">Upload Compiled Artifact</button>
+                  <button id="removeCompanionArtifact" class="danger">Remove Artifact</button>
+                </div>
+                <div class="button-row">
+                  <button id="setCompanionBackendSecret" class="ghost">Set / Rotate Backend Key</button>
+                  <button id="downloadCompanionProperties">Download companion.properties</button>
+                  <button id="downloadCompanionPackage">Download Install Package</button>
+                  <button id="downloadCompanionSource" class="ghost">Download GitHub Source</button>
+                </div>
+                <div id="companionBuilderStatus" class="note"></div>
+              </div>
+              <pre id="companionConfigPreview" class="companion-preview"></pre>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Configuration Layout</h2>
+                <p>
+                  The canonical file is backed up before every successful save.
+                  Generated runtime files should not be edited directly.
+                </p>
+              </div>
+              <span>v7.3.0</span>
+            </div>
+            <div class="detail-grid" id="configurationLayout"></div>
+          </article>
+        </section>
+
+        <section id="view-controls" class="view">
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Gateway State</h2>
+                <span>live command queue</span>
+              </div>
+              <div class="control-stack">
+                <button data-command="maintenance" data-argument="true">
+                  Enable Maintenance</button
+                ><button
+                  data-command="maintenance"
+                  data-argument="false"
+                  class="ghost"
+                >
+                  Disable Maintenance</button
+                ><button data-command="drain" data-argument="true">
+                  Enable Drain Mode</button
+                ><button
+                  data-command="drain"
+                  data-argument="false"
+                  class="ghost"
+                >
+                  Disable Drain Mode
+                </button>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Routing</h2>
+                <span>new sessions only</span>
+              </div>
+              <label
+                >Routing mode<select id="routingMode">
+                  <option value="primary">Primary only</option>
+                  <option value="failover">Failover</option>
+                  <option value="round_robin">Round robin</option>
+                  <option value="least_sessions">Least sessions</option>
+                </select></label
+              ><button id="applyRouting">Apply Routing</button>
+            </article>
+          </div>
+          <div class="grid-two">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>IP Control</h2>
+                <span>firewall</span>
+              </div>
+              <label
+                >IP address<input
+                  id="banIp"
+                  placeholder="203.0.113.42" /></label
+              ><label
+                >Ban seconds<input
+                  id="banSeconds"
+                  type="number"
+                  value="300"
+                  min="1"
+              /></label>
+              <div class="button-row">
+                <button id="banButton">Ban IP</button
+                ><button id="unbanButton" class="ghost">Unban IP</button
+                ><button id="riskResetButton" class="ghost">Reset Risk</button>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Backend Control</h2>
+                <span>health routing</span>
+              </div>
+              <label>Backend<select id="backendSelect"></select></label>
+              <div class="button-row">
+                <button id="enableBackend">Enable</button
+                ><button id="disableBackend" class="danger">Disable</button>
+              </div>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Diagnostics & Recovery</h2>
+                <p>
+                  Produces a redacted package without tokens, secrets, webhook
+                  credentials, or raw addresses.
+                </p>
+              </div>
+              <span>v7.3.0</span>
+            </div>
+            <div class="button-row">
+              <button id="downloadSupportBundle">
+                Generate Support Bundle
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="packetDialog">
+      <div class="dialog-head">
+        <h2>Packet Details</h2>
+        <button id="closePacketDialog" class="ghost">Close</button>
+      </div>
+      <pre id="packetDetails"></pre>
+    </dialog>
+
+    <dialog id="backendDialog">
+      <form id="backendForm">
+        <div class="dialog-head">
+          <div>
+            <h2 id="backendDialogTitle">Add Server</h2>
+            <p>
+              Public ports must already exist as Pterodactyl UDP allocations.
+            </p>
+          </div>
+          <button id="closeBackendDialog" type="button" class="ghost">
+            Close
+          </button>
+        </div>
+        <input id="backendOriginalId" type="hidden" />
+        <div class="form-grid">
+          <label
+            >Server ID<input
+              id="backendId"
+              required
+              pattern="[a-z][a-z0-9_-]{1,31}"
+              placeholder="redstone"
+          /></label>
+          <label
+            >Display name<input
+              id="backendDisplayName"
+              required
+              placeholder="Redstone Server"
+          /></label>
+          <label
+            >Backend host<input
+              id="backendHost"
+              required
+              placeholder="185.83.152.144"
+          /></label>
+          <label
+            >Backend UDP port<input
+              id="backendPort"
+              type="number"
+              min="1"
+              max="65535"
+              required
+              placeholder="19132"
+          /></label>
+          <label
+            >Public proxy UDP port<input
+              id="backendPublicPort"
+              type="number"
+              min="0"
+              max="65535"
+              required
+              placeholder="25572"
+          /><small>Ports in the shared transfer range are allowed. A permanent backend assignment automatically removes that port from temporary ticket use.</small></label>
+          <div id="transferPortAvailability" class="note"></div>
+          <label>Connection mode
+            <select id="backendConnectionMode">
+              <option value="transparent">Transparent Auth (online-mode=true)</option>
+              <option value="full_proxy">Full Proxy (online-mode=false)</option>
+            </select>
+          </label>
+          <label>Backend adapter
+            <select id="backendAdapter">
+              <option value="endstone">Endstone Bridge</option>
+              <option value="vanilla_bridge">Vanilla Behavior-Pack Bridge</option>
+              <option value="vanilla_agent">Vanilla Bridge + Host Agent</option>
+              <option value="proxy_only">Proxy-Only Compatibility</option>
+            </select>
+          </label>
+          <label>Backend capacity<input id="backendCapacity" type="number" min="1" max="100000" value="50" required /></label>
+          <label>Fallback backend ID<input id="backendFallbackBackend" placeholder="lobby" /></label>
+          <label class="checkbox-label"><input id="backendOnlineMode" type="checkbox" checked /> Backend online-mode is enabled</label>
+          <label class="checkbox-label"><input id="backendRequireIdentity" type="checkbox" /> Reject joins without a signed proxy identity</label>
+          <div id="backendModeHelp" class="note"></div>
+          <label
+            >Protection profile<input
+              id="backendProfile"
+              required
+              placeholder="redstone"
+          /></label>
+          <label
+            >Companion secret Startup variable<input
+              id="backendSecretEnv"
+              placeholder="COMPANION_REDSTONE_SECRET"
+          /></label>
+          <label class="checkbox-label"
+            ><input id="backendEnabled" type="checkbox" checked />
+            Enabled</label
+          >
+          <label class="checkbox-label"
+            ><input id="backendFallback" type="checkbox" /> Fallback
+            backend</label
+          >
+        </div>
+        <div id="backendTestResult" class="note">
+          Test checks the backend host and UDP port directly.
+        </div>
+        <div class="button-row">
+          <button id="testBackendButton" type="button" class="ghost">
+            Test Connection</button
+          ><button id="saveBackendButton" type="submit">Save Server</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="secretDialog">
+      <form id="secretForm">
+        <div class="dialog-head">
+          <div>
+            <h2 id="secretDialogTitle">Set Secret</h2>
+            <p id="secretDialogDescription">The saved value will not be displayed again.</p>
+          </div>
+          <button id="closeSecretDialog" type="button" class="ghost">Close</button>
+        </div>
+        <input id="secretId" type="hidden" />
+        <div class="form-grid">
+          <label>Storage source
+            <select id="secretMode">
+              <option value="dashboard">Store in protected unified config</option>
+              <option value="environment">Use Pterodactyl Startup variable</option>
+              <option value="inherit">Inherit default companion secret</option>
+              <option value="clear">Clear / disable</option>
+            </select>
+          </label>
+          <label id="secretEnvironmentLabel">Startup variable
+            <input id="secretEnvironmentVariable" placeholder="COMPANION_SERVER_SECRET" />
+          </label>
+          <label id="secretValueLabel">New value
+            <input id="secretValue" type="password" autocomplete="new-password" placeholder="Enter a new value" />
+          </label>
+        </div>
+        <div class="note">
+          Existing values are never loaded into this form. Environment mode works only
+          when that variable is populated in the running service. Companion keys must
+          match <code>shared_secret</code> in the backend companion.properties file and
+          are unrelated to the dashboard owner password or browser session.
+        </div>
+        <div class="button-row">
+          <button id="generateSecret" type="button" class="ghost">Generate Secure Value</button>
+          <button id="saveSecret" type="submit">Save & Restart Services</button>
+        </div>
+      </form>
+    </dialog>
+
+
+    <dialog id="setupDialog">
+      <form id="setupForm">
+        <div class="dialog-head">
+          <h2>Create the Dashboard Owner</h2>
+        </div>
+        <p>
+          This dashboard has not been claimed. Choose the permanent owner username
+          and password, then enter the single-use setup code shown in the server
+          console or <code>runtime/FIRST_RUN_SETUP.txt</code>.
+        </p>
+        <label>Setup code
+          <input id="setupCodeInput" type="password" autocomplete="one-time-code" required />
+        </label>
+        <label>Owner username
+          <input id="setupUsernameInput" autocomplete="username" minlength="3" maxlength="32" required />
+        </label>
+        <label>Password
+          <input id="setupPasswordInput" type="password" autocomplete="new-password" minlength="12" required />
+        </label>
+        <label>Confirm password
+          <input id="setupPasswordConfirmInput" type="password" autocomplete="new-password" minlength="12" required />
+        </label>
+        <div class="note">
+          Use at least 12 characters. The setup code is destroyed after the owner
+          account is created.
+        </div>
+        <div class="button-row">
+          <button id="completeSetup" type="submit">Create Owner & Sign In</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="tokenDialog">
+      <form id="loginForm">
+        <div class="dialog-head">
+          <h2>Edge Fabric Sign In</h2>
+          <button id="closeLogin" type="button" class="ghost">Close</button>
+        </div>
+        <p>
+          Enter the dashboard username and password. When TOTP is enabled, enter
+          the current six-digit code.
+        </p>
+        <label
+          >Username<input
+            id="usernameInput"
+            autocomplete="username"
+            placeholder="Owner username" /></label
+        ><label
+          >Password<input
+            id="tokenInput"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Dashboard password" /></label
+        ><label
+          >Two-factor code<input
+            id="totpInput"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            placeholder="Optional"
+        /></label>
+        <div class="button-row">
+          <button id="saveToken" type="submit">Sign In</button
+          ><button id="clearToken" type="button" class="danger">
+            Sign Out / Forget
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

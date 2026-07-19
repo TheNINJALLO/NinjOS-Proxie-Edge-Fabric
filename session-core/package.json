@@ -1,0 +1,20 @@
+{
+  "name": "ninjos-proxie-session-core",
+  "version": "7.3.0",
+  "private": true,
+  "description": "Protocol-aware Bedrock session layer for Ninj-OS Proxie Edge Fabric",
+  "license": "AGPL-3.0-only",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/ninjos-relay.js && node --check src/hmac.js",
+    "test": "node test/config.test.js"
+  },
+  "dependencies": {
+    "bedrock-protocol": "3.56.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

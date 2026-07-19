@@ -1,0 +1,11 @@
+build/
+dist/
+cmake-build-*/
+.idea/
+.vscode/
+*.so
+*.dll
+*.dylib
+*.zip
+*.tar.gz
+companion.properties

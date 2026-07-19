@@ -1,0 +1,17 @@
+{
+  "allowed_modules": [
+    "@minecraft/server",
+    "@minecraft/server-net"
+  ],
+  "module_permissions": {
+    "@minecraft/server-net": {
+      "allowed_uris": [
+        "http://127.0.0.1:25571/",
+        "http://YOUR_PROXY_PRIVATE_IP:25571/"
+      ],
+      "force_https": false,
+      "max_body_bytes": 262144,
+      "max_concurrent_requests": 4
+    }
+  }
+}

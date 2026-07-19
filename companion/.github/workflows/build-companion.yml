@@ -1,0 +1,226 @@
+name: Build Endstone Companion
+
+on:
+  workflow_dispatch:
+    inputs:
+      endstone_version:
+        description: "Exact Endstone release without the leading v"
+        required: true
+        default: "0.11.6"
+        type: string
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+env:
+  DEFAULT_ENDSTONE_VERSION: "0.11.6"
+
+jobs:
+  build-linux:
+    name: Linux x86_64 / Endstone ${{ inputs.endstone_version || '0.11.6' }}
+    runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:22.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Endstone version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            version="${{ inputs.endstone_version }}"
+          else
+            version="${DEFAULT_ENDSTONE_VERSION}"
+          fi
+
+          version="${version#v}"
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Invalid Endstone version: $version" >&2
+            exit 1
+          fi
+
+          echo "endstone_version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building against Endstone v$version"
+
+      - name: Install Linux build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export DEBIAN_FRONTEND=noninteractive
+
+          apt-get update
+          apt-get install --yes \
+            ca-certificates \
+            cmake \
+            curl \
+            file \
+            git \
+            gnupg \
+            lsb-release \
+            ninja-build \
+            python3 \
+            software-properties-common \
+            unzip \
+            zip
+
+          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor -o /usr/share/keyrings/llvm-snapshot.gpg
+
+          echo "deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" \
+            > /etc/apt/sources.list.d/llvm-18.list
+
+          apt-get update
+          apt-get install --yes \
+            clang-18 \
+            libc++-18-dev \
+            libc++abi-18-dev \
+            lld-18
+
+      - name: Generate operator documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/generate-documentation.py
+
+      - name: Configure
+        shell: bash
+        env:
+          ENDSTONE_VERSION: ${{ steps.version.outputs.endstone_version }}
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S . \
+            -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENDSTONE_API_VERSION="$ENDSTONE_VERSION" \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-stdlib=libc++"
+
+      - name: Compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build --parallel 2
+
+      - name: Locate and inspect plugin
+        id: plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          plugin="$(find build -type f -name 'ninjos_proxie_companion.so' -print -quit)"
+
+          if [[ -z "$plugin" ]]; then
+            plugin="$(find build -type f -name '*ninjos_proxie_companion*.so' -print -quit)"
+          fi
+
+          if [[ -z "$plugin" || ! -f "$plugin" ]]; then
+            echo "The build completed without producing the companion .so." >&2
+            find build -maxdepth 6 -type f | sort
+            exit 1
+          fi
+
+          file "$plugin"
+          ldd "$plugin" || true
+
+          highest_glibc="$(
+            strings "$plugin" \
+              | grep -oE 'GLIBC_[0-9]+\.[0-9]+' \
+              | sort -V \
+              | tail -n 1 \
+              || true
+          )"
+
+          echo "Highest referenced glibc symbol: ${highest_glibc:-none}"
+
+          if [[ -n "$highest_glibc" ]]; then
+            required="${highest_glibc#GLIBC_}"
+            if dpkg --compare-versions "$required" gt "2.35"; then
+              echo "Plugin requires $highest_glibc, which is newer than the Ubuntu 22.04 compatibility target." >&2
+              exit 1
+            fi
+          fi
+
+          echo "plugin=$plugin" >> "$GITHUB_OUTPUT"
+
+      - name: Create install-ready package
+        shell: bash
+        env:
+          PLUGIN_FILE: ${{ steps.plugin.outputs.plugin }}
+          ENDSTONE_VERSION: ${{ steps.version.outputs.endstone_version }}
+        run: |
+          set -euo pipefail
+
+          package_root="dist/package"
+          plugin_data="$package_root/plugins/ninjos_proxie_companion"
+          archive_name="NinjOS-Endstone-Companion-Linux-x86_64-Endstone-${ENDSTONE_VERSION}.zip"
+
+          mkdir -p "$plugin_data"
+
+          cp "$PLUGIN_FILE" "$package_root/plugins/ninjos_proxie_companion.so"
+          cp companion.properties.example "$plugin_data/companion.properties"
+          cp docs/INSTALL.md "$package_root/INSTALL.md"
+          cp docs/CONFIGURATION.md "$package_root/CONFIGURATION.md"
+          cp docs/COMPATIBILITY.md "$package_root/COMPATIBILITY.md"
+          cp docs/COMPLETE_SETUP.md "$package_root/COMPANION-HOWTO.md"
+
+          cat > "$package_root/BUILD-INFO.txt" <<EOF
+          Plugin: Ninj-OS Proxie Endstone Companion
+          Plugin version: 3.6.0
+          Endstone version: ${ENDSTONE_VERSION}
+          Platform: Linux x86_64
+          Git commit: ${GITHUB_SHA}
+          Built by: GitHub Actions
+          EOF
+
+          (
+            cd "$package_root"
+            sha256sum plugins/ninjos_proxie_companion.so > SHA256SUMS.txt
+            zip -r "../$archive_name" .
+          )
+
+          sha256sum "dist/$archive_name" > "dist/$archive_name.sha256"
+
+      - name: Upload compiled package
+        uses: actions/upload-artifact@v4
+        with:
+          name: NinjOS-Endstone-Companion-Endstone-${{ steps.version.outputs.endstone_version }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish tag release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/*.zip \
+            dist/*.sha256 \
+            --generate-notes \
+            --title "Ninj-OS Endstone Companion ${GITHUB_REF_NAME}"
