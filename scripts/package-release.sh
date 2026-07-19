@@ -92,6 +92,7 @@ tar -C "${STAGE}/runtime" -czf "${OUT}/${RUNTIME}" .
 sha256sum "${OUT}/${RUNTIME}" | awk '{print $1 "  " $2}' | sed 's# .*/#  #' > "${OUT}/${RUNTIME}.sha256"
 
 cp "${ROOT}/dist-assets/egg-ninjos-proxie-edge-fabric-v${VERSION}.json" "${OUT}/"
+cp "${ROOT}/bridges/vanilla-addon/${VANILLA_BRIDGE_ARCHIVE}" "${OUT}/"
 cp "${ROOT}/README.md" "${ROOT}/INSTALLATION.md" "${ROOT}/CHANGELOG.md" \
    "${ROOT}/CONTRIBUTING.md" "${ROOT}/SECURITY.md" "${ROOT}/SUPPORT.md" \
    "${ROOT}/LICENSE" "${ROOT}/NOTICE.md" "${OUT}/"
