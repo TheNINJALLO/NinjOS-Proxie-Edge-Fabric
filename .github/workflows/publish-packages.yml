@@ -57,6 +57,15 @@ jobs:
             org.opencontainers.image.version=${{ steps.version.outputs.value }}
             org.opencontainers.image.licenses=AGPL-3.0-only
 
+      - name: Make container package public
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method PATCH \
+            /user/packages/container/ninjos-proxie-edge-fabric/visibility \
+            -f visibility=public
+
   npm:
     name: Publish Session Core npm package
     runs-on: ubuntu-22.04
@@ -102,3 +111,12 @@ jobs:
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Make npm package public
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method PATCH \
+            '/user/packages/npm/%40theninjallo%2Fninjos-proxie-session-core/visibility' \
+            -f visibility=public
