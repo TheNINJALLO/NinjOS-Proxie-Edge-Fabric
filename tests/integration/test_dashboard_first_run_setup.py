@@ -136,6 +136,66 @@ def main() -> None:
             status, final_login = request("/api/login", "POST", {"username": "RecoveredOwner", "password": "Recovered-password-9012"})
             assert status == 200, final_login
 
+            owner_token = final_login["token"]
+            status, team_account = request("/api/users", "POST", {
+                "username": "NightOperator",
+                "password": "Operator-password-3456",
+                "role": "operator",
+            }, owner_token)
+            assert status == 201, team_account
+            assert team_account["role"] == "operator" and team_account["enabled"] is True
+            assert "passwordHash" not in team_account and "tokenHash" not in team_account
+
+            status, team = request("/api/users", token=owner_token)
+            assert status == 200, team
+            listed = next(user for user in team["users"] if user["username"] == "NightOperator")
+            assert listed["authentication"] == "password" and listed["managed"] is False
+
+            status, operator_login = request("/api/login", "POST", {
+                "username": "NightOperator",
+                "password": "Operator-password-3456",
+            })
+            assert status == 200 and operator_login["principal"]["role"] == "operator"
+            status, denied = request("/api/users", token=operator_login["token"])
+            assert status == 403, denied
+
+            status, disabled = request("/api/users", "PUT", {
+                "username": "NightOperator",
+                "role": "viewer",
+                "enabled": False,
+                "password": "Viewer-password-7890",
+            }, owner_token)
+            assert status == 200 and disabled["enabled"] is False
+            status, revoked = request("/api/whoami", token=operator_login["token"])
+            assert status == 401, revoked
+            status, disabled_login = request("/api/login", "POST", {
+                "username": "NightOperator",
+                "password": "Viewer-password-7890",
+            })
+            assert status == 401, disabled_login
+
+            status, enabled = request("/api/users", "PUT", {
+                "username": "NightOperator",
+                "role": "viewer",
+                "enabled": True,
+            }, owner_token)
+            assert status == 200 and enabled["role"] == "viewer"
+            status, viewer_login = request("/api/login", "POST", {
+                "username": "NightOperator",
+                "password": "Viewer-password-7890",
+            })
+            assert status == 200 and viewer_login["principal"]["role"] == "viewer"
+
+            status, removed = request("/api/users", "DELETE", {
+                "username": "NightOperator",
+            }, owner_token)
+            assert status == 200 and removed["deleted"] is True
+            status, removed_login = request("/api/login", "POST", {
+                "username": "NightOperator",
+                "password": "Viewer-password-7890",
+            })
+            assert status == 401, removed_login
+
             users = json.loads((runtime / "dashboard-users.json").read_text(encoding="utf-8"))
             owner = next(user for user in users["users"] if user["role"] == "owner")
             assert "passwordHash" in owner and "passwordSalt" in owner

@@ -85,7 +85,7 @@ companion key.
 
 Secret changes regenerate the runtime configuration and schedule only the required
 service restart. Changing the owner TOTP secret invalidates dashboard sessions.
-Changing the owner username or password from **Owner Account** also invalidates
+Changing the owner username or password from **Team & Access > Owner Account** also invalidates
 every other browser session.
 
 After rotating a companion secret, download and install a fresh companion package

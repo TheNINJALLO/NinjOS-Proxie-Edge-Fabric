@@ -96,7 +96,7 @@ Username: recovery
 Password: the recovery token value
 ```
 
-Open **Configuration & Secrets → Owner Account**, choose a replacement username
+Open **Team & Access > Owner Account**, choose a replacement username
 and password, save, clear `DASHBOARD_RECOVERY_TOKEN`, and restart again.
 
 Standalone and Docker installations use the same recovery flow through their

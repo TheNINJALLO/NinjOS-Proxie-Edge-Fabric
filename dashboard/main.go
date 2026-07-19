@@ -259,6 +259,7 @@ func main() {
 	mux.HandleFunc("/api/login", d.handleLogin)
 	mux.HandleFunc("/api/logout", d.handleLogout)
 	mux.HandleFunc("/api/account", d.requireRole("owner", d.handleOwnerAccount))
+	mux.HandleFunc("/api/users", d.requireRole("owner", d.handleDashboardUsers))
 	mux.HandleFunc("/ingest", d.handleIngest)
 	mux.HandleFunc("/transfer", d.handleTransferRequest)
 	mux.HandleFunc("/api/session-core/v1/grants", d.handleIdentityGrant)

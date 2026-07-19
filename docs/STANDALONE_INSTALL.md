@@ -158,7 +158,7 @@ The preferred recovery method does not delete the account:
    containing at least 16 characters.
 2. Restart the service.
 3. Sign in with username `recovery` and the recovery value as the password.
-4. Open **Configuration & Secrets → Owner Account** and choose a replacement
+4. Open **Team & Access > Owner Account** and choose a replacement
    username and password.
 5. Clear `DASHBOARD_RECOVERY_TOKEN` and restart again.
 

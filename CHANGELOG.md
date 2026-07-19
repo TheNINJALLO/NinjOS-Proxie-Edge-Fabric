@@ -1,5 +1,15 @@
 # Changelog
 
+## Dashboard access and interface update
+
+- Added owner-managed admin, operator, and viewer accounts with password reset,
+  immediate session revocation, temporary disablement, deletion, and audit events.
+- Made dashboard navigation role-aware so each account sees the tools it can use.
+- Consolidated backend configuration and live health into one registry and removed
+  duplicate routing and backend displays.
+- Moved owner credentials into a dedicated Team & Access area and clearly labeled
+  the raw INI editor as Advanced Configuration.
+
 ## 7.3.0 - 2026-07-19
 
 - Added dual connection modes: Transparent Auth Mode for `online-mode=true` and Full Proxy Mode for `online-mode=false`.

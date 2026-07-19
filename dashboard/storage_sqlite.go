@@ -572,6 +572,10 @@ func (l *ledger) deleteSession(tokenHash string) {
 	_ = l.exec("DELETE FROM dashboard_sessions WHERE token_hash=?", tokenHash)
 }
 
+func (l *ledger) revokeUserSessions(username string) {
+	_ = l.exec("DELETE FROM dashboard_sessions WHERE lower(username)=lower(?)", username)
+}
+
 func (l *ledger) cleanupSessions() {
 	_ = l.exec(
 		"DELETE FROM dashboard_sessions WHERE expires_at<?",

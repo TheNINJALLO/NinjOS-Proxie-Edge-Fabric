@@ -840,6 +840,32 @@ code {
   color: var(--muted);
   text-align: center;
 }
+.role-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.role-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(10, 23, 33, 0.55);
+}
+.role-summary span,
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+.account-role {
+  display: inline-block;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  text-transform: capitalize;
+}
 @media (max-width: 1180px) {
   .endstone-performance {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -849,6 +875,7 @@ code {
   }
 }
 @media (max-width: 720px) {
+  .role-summary,
   .endstone-performance,
   .endstone-server-grid,
   .endstone-primary-metrics,
