@@ -1,11 +1,26 @@
 {
-  "name": "ninjos-proxie-session-core",
+  "name": "@theninjallo/ninjos-proxie-session-core",
   "version": "7.3.0",
-  "private": true,
+  "private": false,
   "description": "Protocol-aware Bedrock session layer for Ninj-OS Proxie Edge Fabric",
   "license": "AGPL-3.0-only",
   "type": "commonjs",
   "main": "src/index.js",
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric.git",
+    "directory": "session-core"
+  },
+  "homepage": "https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki",
+  "bugs": "https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/issues",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "scripts": {
     "start": "node src/index.js",
     "check": "node --check src/index.js && node --check src/ninjos-relay.js && node --check src/hmac.js",

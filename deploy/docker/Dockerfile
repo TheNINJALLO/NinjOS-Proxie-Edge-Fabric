@@ -15,8 +15,9 @@ COPY --chown=ninjos:ninjos config/edge-fabric.example.ini ./edge-fabric.example.
 COPY --chown=ninjos:ninjos manifest.json README.md INSTALLATION.md CHANGELOG.md LICENSE NOTICE.md ./
 COPY --chown=ninjos:ninjos docs ./docs
 COPY --chown=ninjos:ninjos session-core/package.json session-core/package-lock.json ./session-core/
+RUN npm ci --omit=dev --prefix session-core \
+    && npm cache clean --force
 COPY --chown=ninjos:ninjos session-core/src ./session-core/src
-COPY --chown=ninjos:ninjos session-core/node_modules ./session-core/node_modules
 COPY --chown=ninjos:ninjos bridges/vanilla-addon/NinjOS-Vanilla-Bridge-v7.3.0.mcpack ./bridges/
 COPY --chown=ninjos:ninjos prebuilt/agents ./agents
 
