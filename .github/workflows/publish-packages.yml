@@ -90,6 +90,15 @@ jobs:
           [[ "$requested" == "$actual" ]] || { echo "Requested $requested but package.json contains $actual" >&2; exit 1; }
 
       - name: Publish to GitHub Packages
-        run: npm publish --access public
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          if npm view "${package}@${version}" version --registry https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "${package}@${version} is already published; leaving it unchanged."
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
