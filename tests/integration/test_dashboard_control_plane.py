@@ -178,7 +178,7 @@ def main() -> None:
             session = login["token"]
 
             _, state = request("/api/state", token=session)
-            assert state["version"] == "7.3.1"
+            assert state["version"] == "7.3.2"
             assert state["management"]["sqliteLedger"] is True
 
             _, managed_settings = request("/api/settings", token=session)
@@ -346,7 +346,7 @@ def main() -> None:
                 audit_count = database.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
                 assert audit_count >= 1
 
-            print("dashboard-v7.3.1: PASS")
+            print("dashboard-v7.3.2: PASS")
         finally:
             process.terminate()
             try:

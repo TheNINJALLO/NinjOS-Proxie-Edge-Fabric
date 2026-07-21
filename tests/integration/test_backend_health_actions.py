@@ -102,7 +102,7 @@ def main() -> None:
             wait_for(lambda: command_present(commands, 'zoo', 'true'), timeout=16)
             alerts = runtime / 'edge-fabric.db'
             assert alerts.exists()
-            print('health-actions-v7.3.1: PASS')
+            print('health-actions-v7.3.2: PASS')
         finally:
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)

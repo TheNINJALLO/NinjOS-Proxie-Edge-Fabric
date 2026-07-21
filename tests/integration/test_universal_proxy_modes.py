@@ -73,6 +73,10 @@ def main():
         assert session_config["backends"][0]["adapter"] == "vanilla_bridge"
         assert "kingdom" in gateway.read_text() and "zoo" in gateway.read_text()
         assert "lobby" not in gateway.read_text()
+        gateway_topology = runtime / "gateway-topology.properties"
+        assert f"topology_file={gateway_topology}" in gateway.read_text()
+        assert "kingdom" in gateway_topology.read_text() and "zoo" in gateway_topology.read_text()
+        assert "lobby" not in gateway_topology.read_text()
 
         process = subprocess.Popen([str(BINARY)], env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         try:
