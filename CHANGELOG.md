@@ -9,6 +9,8 @@
 - Separated the transparent gateway's live topology from Full Proxy routes so both
   runtimes cannot bind the same public UDP port.
 - Rebuilt the pinned Session Core dependency lock and release runtime assets.
+- Fixed container publishing so it builds current binaries and the versioned
+  Vanilla Bridge package before constructing the image.
 - Updated installers, packages, documentation, and release automation for `v7.3.2`.
 
 ## 7.3.1 - 2026-07-19
