@@ -470,7 +470,7 @@ function renderState(data) {
       ? "Drain Mode"
       : incident.active
         ? "Incident Mode"
-        : `Online · v${data.version || "7.3.1"}`;
+        : `Online · v${data.version || "7.3.2"}`;
   $("#modeBadge").style.color =
     gateway.maintenance || gateway.drain || incident.active
       ? "var(--amber)"
@@ -1789,7 +1789,7 @@ $("#downloadSupportBundle").addEventListener("click", async () => {
     const blob = await response.blob();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "NinjOS-Edge-Fabric-v7.3.1-Support.zip";
+    link.download = "NinjOS-Edge-Fabric-v7.3.2-Support.zip";
     link.click();
     URL.revokeObjectURL(link.href);
     toast("Redacted support bundle generated");

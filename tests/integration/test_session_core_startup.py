@@ -71,7 +71,7 @@ def main() -> None:
                 raise AssertionError(f"Session Core did not report a listener:\n{output}")
             assert f"127.0.0.1:{port}/UDP" in output, output
             assert "jsp-raknet" not in output or True
-            print("session-core-startup-v7.3.1: PASS")
+            print("session-core-startup-v7.3.2: PASS")
         finally:
             try:
                 os.killpg(process.pid, signal.SIGTERM)

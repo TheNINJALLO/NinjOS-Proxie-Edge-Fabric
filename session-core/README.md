@@ -2,7 +2,7 @@
 
 `@theninjallo/ninjos-proxie-session-core` is the protocol-aware Bedrock session layer used by Ninj-OS Proxie Edge Fabric. It supplies the Node.js relay and HMAC/session support used alongside the native edge gateway and dashboard.
 
-This package is a component of the complete Edge Fabric, not a standalone end-user proxy distribution. Most operators should install the full runtime from the [v7.3.1 Release](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/tag/v7.3.1) and follow the [Wiki](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki).
+This package is a component of the complete Edge Fabric, not a standalone end-user proxy distribution. Most operators should install the full runtime from the [v7.3.2 Release](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/tag/v7.3.2) and follow the [Wiki](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki).
 
 ## Requirements
 
@@ -19,7 +19,7 @@ Configure npm to use GitHub Packages for the `@theninjallo` scope, authenticate 
 ```
 
 ```bash
-npm install @theninjallo/ninjos-proxie-session-core@7.3.1
+npm install @theninjallo/ninjos-proxie-session-core@7.3.2
 ```
 
 See the repository documentation for configuration, security, networking, upgrades, and compatibility. Licensed under AGPL-3.0-only.
