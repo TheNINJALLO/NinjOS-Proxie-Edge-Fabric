@@ -637,6 +637,7 @@ func prepareUnifiedConfig(configPath, runtimeDir, gatewayPath string) error {
 
 	gateway := fmt.Sprintf(`listen_port=%d
 runtime_dir=%s
+topology_file=%s
 backends=%s
 static_routes=%s
 primary_backend=%s
@@ -707,6 +708,7 @@ live_config_reload_ms=1000
 `,
 		document.getInt("edge", "primary_allocation_port", 25566, 1, 65535),
 		runtimeDir,
+		filepath.Join(runtimeDir, "gateway-topology.properties"),
 		strings.Join(backendEntries, ";"), strings.Join(routeEntries, ";"),
 		gatewayPrimary, topology.RoutingMode,
 		document.getBool("transfer", "enabled", true),
@@ -868,6 +870,20 @@ live_config_reload_ms=1000
 
 	topologyOutput := serializeTopology(topology)
 	if err := os.WriteFile(filepath.Join(runtimeDir, "topology.properties"), []byte(topologyOutput), 0644); err != nil {
+		return err
+	}
+
+	gatewayTopology := topologyConfig{
+		Version:        topologySchemaVersion,
+		PrimaryBackend: gatewayPrimary,
+		RoutingMode:    topology.RoutingMode,
+	}
+	for _, backend := range topology.Backends {
+		if backend.ConnectionMode != "full_proxy" {
+			gatewayTopology.Backends = append(gatewayTopology.Backends, backend)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(runtimeDir, "gateway-topology.properties"), []byte(serializeTopology(gatewayTopology)), 0644); err != nil {
 		return err
 	}
 

@@ -1,6 +1,6 @@
 {
   "name": "@theninjallo/ninjos-proxie-session-core",
-  "version": "7.3.1",
+  "version": "7.3.2",
   "private": false,
   "description": "Protocol-aware Bedrock session layer for Ninj-OS Proxie Edge Fabric",
   "license": "AGPL-3.0-only",
@@ -27,7 +27,7 @@
     "test": "node test/config.test.js"
   },
   "dependencies": {
-    "bedrock-protocol": "3.56.1"
+    "bedrock-protocol": "3.57.0"
   },
   "engines": {
     "node": ">=22"

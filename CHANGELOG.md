@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.3.2 - 2026-07-21
+
+### Minecraft Bedrock 1.26.30 Full Proxy compatibility
+
+- Updated the Session Core from `bedrock-protocol` `3.56.1` to `3.57.0`.
+- Added the current Bedrock `1.26.30` protocol implementation to Full Proxy mode.
+- Separated the transparent gateway's live topology from Full Proxy routes so both
+  runtimes cannot bind the same public UDP port.
+- Rebuilt the pinned Session Core dependency lock and release runtime assets.
+- Updated installers, packages, documentation, and release automation for `v7.3.2`.
+
 ## 7.3.1 - 2026-07-19
 
 ### Dashboard access and interface update

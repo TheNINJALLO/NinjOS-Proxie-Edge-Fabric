@@ -1,6 +1,7 @@
 build/
 build-local/
 dist/
+node_modules/
 *.log
 *.so
 *.tar.gz
