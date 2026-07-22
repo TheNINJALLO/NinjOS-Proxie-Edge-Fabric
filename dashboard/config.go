@@ -325,7 +325,10 @@ func serializeUnifiedConfig(document *iniDocument) (string, error) {
 	if err := validateUnifiedConfig(document); err != nil {
 		return "", err
 	}
+	return renderUnifiedConfig(document), nil
+}
 
+func renderUnifiedConfig(document *iniDocument) string {
 	ordered := []string{"edge", "dashboard", "session_core", "companion", "transfer", "firewall", "incident", "health", "logging", "discord"}
 	backends := make([]string, 0)
 	profiles := make([]string, 0)
@@ -404,7 +407,7 @@ func serializeUnifiedConfig(document *iniDocument) (string, error) {
 		output.WriteString("\n")
 	}
 
-	return output.String(), nil
+	return output.String()
 }
 
 func writeUnifiedConfig(path string, document *iniDocument) error {
@@ -1137,14 +1140,6 @@ func configRevision(document *iniDocument) string {
 	}
 	sum := sha256.Sum256([]byte(content))
 	return hex.EncodeToString(sum[:])
-}
-
-func renderUnifiedConfig(document *iniDocument) string {
-	content, err := serializeUnifiedConfig(document)
-	if err != nil {
-		return ""
-	}
-	return content
 }
 
 func iniSectionEqual(left, right *iniDocument, section string) bool {
