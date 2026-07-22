@@ -1,9 +1,9 @@
-# Upgrade to v7.3.6
+# Upgrade to v7.3.7
 
-v7.3.6 coordinates gateway and Session Core restarts, reserves Full Proxy
-allocations from the transfer pool, and reports readiness only after listeners
-bind. Pterodactyl users should update both the runtime archive and egg. Existing
-eggs remain compatible with the legacy readiness line.
+v7.3.7 fixes the Endstone Full Proxy identity handoff. Companion v3.6.1 retries
+while a newly created one-use grant reaches the dashboard and no longer removes
+operator status already configured on the backend. Pterodactyl users should
+update the runtime, egg, and compiled companion package together.
 
 ## Back up
 
@@ -18,20 +18,21 @@ Also retain `/etc/ninjos-proxie.env` on standalone Linux and the Docker `.env` f
 
 ## From v7.2.x
 
-v7.3.6 adds per-backend connection modes, the Session Core, signed identity grants, Vanilla Bridge, and native host agents. Existing backend sections default to Transparent Auth behavior. Do not change a production backend to Full Proxy until its bridge is installed and its private port is firewalled.
+v7.3.7 adds per-backend connection modes, the Session Core, signed identity grants, Vanilla Bridge, and native host agents. Existing backend sections default to Transparent Auth behavior. Do not change a production backend to Full Proxy until its bridge is installed and its private port is firewalled.
 
 ## Pterodactyl
 
-1. Import and assign the v7.3.6 egg.
+1. Import and assign the v7.3.7 egg.
 2. Reinstall.
-3. Upload the v7.3.6 runtime archive.
+3. Upload the v7.3.7 runtime archive.
 4. Start and verify the console version.
 5. Review each backend's connection mode and adapter.
+6. Replace the Endstone companion with v3.6.1 and restart the backend.
 
 ## Linux
 
 ```bash
-sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.6-Runtime.tar.gz
+sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.7-Runtime.tar.gz
 ```
 
 The installer preserves persistent data and installs the portable Node.js runtime only when required.

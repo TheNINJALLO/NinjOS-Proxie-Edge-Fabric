@@ -86,13 +86,13 @@ jobs:
           cp companion/docs/CONFIGURATION.md "$root/CONFIGURATION.md"
           cat > "$root/BUILD-INFO.txt" <<INFO
           Plugin: Ninj-OS Endstone Companion
-          Plugin version: 3.6.0
+          Plugin version: 3.6.1
           Endstone version: ${ENDSTONE_VERSION}
           Platform: Linux x86_64
           Git commit: ${GITHUB_SHA}
           INFO
           (cd "$root" && sha256sum plugins/ninjos_proxie_companion.so > SHA256SUMS.txt)
-          archive="NinjOS-Endstone-Companion-v3.6.0-Endstone-${ENDSTONE_VERSION}-Linux-x86_64.zip"
+          archive="NinjOS-Endstone-Companion-v3.6.1-Endstone-${ENDSTONE_VERSION}-Linux-x86_64.zip"
           (cd "$root" && zip -r "../$archive" .)
           sha256sum "dist/$archive" > "dist/$archive.sha256"
 

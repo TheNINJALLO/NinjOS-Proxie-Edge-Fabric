@@ -61,7 +61,7 @@ def signed_ingest(server_header: str, server_payload: str, secret: str):
                 {
                     "type": "metrics",
                     "timestamp": now,
-                    "companionVersion": "3.6.0",
+                    "companionVersion": "3.6.1",
                     "capabilitySchema": 1,
                     "capabilities": ["metrics", "presence", "transfer"],
                     "currentTps": 19.75,

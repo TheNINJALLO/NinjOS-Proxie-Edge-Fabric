@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -16,7 +17,7 @@ def main() -> None:
 
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(ROOT / "companion" / "scripts" / "generate-documentation.py"),
             "--root-copy",
             "docs/COMPANION.md",
@@ -24,7 +25,7 @@ def main() -> None:
         check=True,
         cwd=ROOT,
     )
-    subprocess.run(["python3", str(ROOT / "scripts" / "package-companion-source.py")], check=True, cwd=ROOT)
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "package-companion-source.py")], check=True, cwd=ROOT)
 
     root_guide = (ROOT / "docs" / "COMPANION.md").read_text(encoding="utf-8")
     companion_guide = (ROOT / "companion" / "docs" / "COMPLETE_SETUP.md").read_text(encoding="utf-8")
@@ -61,7 +62,13 @@ def main() -> None:
     package_script = (ROOT / "scripts" / "package-release.sh").read_text(encoding="utf-8")
     assert "ENDSTONE-COMPANION-HOWTO.md" in package_script
 
-    print("companion-release-assets-v7.3.6: PASS")
+    plugin_source = (ROOT / "companion" / "src" / "plugin.cpp").read_text(encoding="utf-8")
+    assert 'error.find("No valid proxy identity grant")' in plugin_source
+    assert "std::this_thread::sleep_for(std::chrono::milliseconds(100))" in plugin_source
+    assert "if (identity.operator_status) player->setOp(true);" in plugin_source
+    assert "player->setOp(identity.operator_status);" not in plugin_source
+
+    print("companion-release-assets-v7.3.7: PASS")
 
 
 if __name__ == "__main__":

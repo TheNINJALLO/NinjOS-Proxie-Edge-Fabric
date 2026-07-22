@@ -16,7 +16,7 @@ from pathlib import Path
 import sys, zipfile
 root=Path(sys.argv[1])
 pack=root/'bridges/vanilla-addon/NinjOS-Vanilla-Bridge-BP'
-out=root/'bridges/vanilla-addon/NinjOS-Vanilla-Bridge-v7.3.6.mcpack'
+out=root/'bridges/vanilla-addon/NinjOS-Vanilla-Bridge-v7.3.7.mcpack'
 with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
     for p in sorted(pack.rglob('*')):
         if p.is_file(): z.write(p,p.relative_to(pack).as_posix())
