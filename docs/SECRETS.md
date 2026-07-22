@@ -48,7 +48,7 @@ Discord bot token
 ```
 
 `DASHBOARD_TOKEN` may still appear on upgraded v7.0.x systems as a legacy owner
-credential. Fresh v7.3.4 installations do not use it for owner setup.
+credential. Fresh v7.3.5 installations do not use it for owner setup.
 
 ## Storage modes
 

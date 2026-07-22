@@ -216,7 +216,7 @@ def main() -> None:
             assert protocol_packets["tiers"]["round_trip"] == 1
 
             _, state = request("/api/state", token=session)
-            assert state["version"] == "7.3.4"
+            assert state["version"] == "7.3.5"
             assert state["management"]["sqliteLedger"] is True
             zoo_health = next(item for item in state["gateway"]["backends"] if item["name"] == "zoo")
             assert zoo_health["healthy"] is True
@@ -388,7 +388,7 @@ def main() -> None:
                 audit_count = database.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
                 assert audit_count >= 1
 
-            print("dashboard-v7.3.4: PASS")
+            print("dashboard-v7.3.5: PASS")
         finally:
             process.terminate()
             try:

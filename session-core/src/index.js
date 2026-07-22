@@ -17,6 +17,7 @@ let currentConfig = null
 let reloading = false
 let stateTimer = null
 let protocolWeave = null
+let lastInspectionWarning = 0
 
 function log (...args) { console.log('[Ninj-OS Session Core]', ...args) }
 function warn (...args) { console.warn('[Ninj-OS Session Core]', ...args) }
@@ -27,10 +28,10 @@ function writeRuntimeState () {
   const state = {
     timestamp: Date.now(),
     engine: 'session-core',
-    version: '7.3.4',
+    version: '7.3.5',
     protocolPacks: protocolWeave?.catalog() || [],
     protocolInspection: protocolWeave?.inspection() || { enabled: false },
-    backends: [...active.values()].map(({ backend, relay }) => ({
+    backends: [...active.values()].map(({ backend, relay, codecProtocol }) => ({
       name: backend.id,
       displayName: backend.displayName,
       enabled: true,
@@ -46,7 +47,7 @@ function writeRuntimeState () {
       connectionMode: 'full_proxy',
       adapter: backend.adapter,
       status: relay ? 'listening' : 'offline',
-      protocolCompatibility: protocolWeave?.summary(Number(relay?.options?.protocolVersion || 0))
+      protocolCompatibility: protocolWeave?.summary(codecProtocol)
     }))
   }
   const temporary = `${stateFile}.tmp`
@@ -194,9 +195,21 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.4 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.5 · Full Proxy Session Core' })
   }
   return true
+}
+
+function inspectPacketSafely (pack, backendId, direction, name, params, context) {
+  try {
+    protocolWeave?.process(pack, backendId, direction, name, params, context)
+  } catch (error) {
+    const now = Date.now()
+    if (now - lastInspectionWarning >= 5000) {
+      warn(`Protocol inspection error (${backendId} ${direction} ${name}); forwarding unchanged:`, error.message)
+      lastInspectionWarning = now
+    }
+  }
 }
 
 function makeRelay (backend) {
@@ -228,6 +241,7 @@ function makeRelay (backend) {
     fallbackOrDisconnect: (player, reason) => fallbackOrDisconnect(backend, player, reason),
     onBackendError: (_player, error) => warn(`${backend.id}:`, error.message)
   })
+  const codecProtocol = Number(relay.options.protocolVersion)
 
   const parsePacketBuffer = relay.deserializer.parsePacketBuffer.bind(relay.deserializer)
   relay.deserializer.parsePacketBuffer = (packet) => {
@@ -258,7 +272,7 @@ function makeRelay (backend) {
     }
     wrapPacketReader('readPacket', 'serverbound')
     wrapPacketReader('readUpstream', 'clientbound')
-    const expectedProtocol = Number(relay.options.protocolVersion)
+    const expectedProtocol = codecProtocol
     const originalDecodeLoginJWT = player.decodeLoginJWT.bind(player)
     player.decodeLoginJWT = (...args) => {
       try {
@@ -315,14 +329,14 @@ function makeRelay (backend) {
       warn(`${backend.id}: downstream error:`, error?.stack || error?.message || String(error))
     })
     player.on('serverbound', ({ name, params }, descriptor) => {
-      protocolWeave.process(player.__ninjosProtocolPack, backend.id, 'serverbound', name, params, {
+      inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'serverbound', name, params, {
         rawBuffer: descriptor?.fullBuffer,
         serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
       })
       if (name === 'command_request') handleProxyCommand(backend, player, params, descriptor)
     })
     player.on('clientbound', ({ name, params }, descriptor) => {
-      protocolWeave.process(player.__ninjosProtocolPack, backend.id, 'clientbound', name, params, {
+      inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'clientbound', name, params, {
         rawBuffer: descriptor?.fullBuffer,
         serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
       })
@@ -338,7 +352,7 @@ function makeRelay (backend) {
     log(`${backend.id}: upstream Endstone session established for ${downstream.profile?.name || 'Unknown'}`)
   })
   relay.on('error', (error) => warn(`${backend.id} relay error:`, error.message))
-  return relay
+  return { relay, codecProtocol }
 }
 
 async function stopAll () {
@@ -352,6 +366,19 @@ async function stopAll () {
   writeRuntimeState()
 }
 
+function resolveProtocolPackDirectory (configured) {
+  const bundled = path.join(__dirname, '..', 'protocol-packs')
+  if (!configured) return bundled
+  if (path.isAbsolute(configured)) return fs.existsSync(configured) ? configured : bundled
+
+  // Generated paths are rooted at the installation directory, not whichever
+  // working directory happened to launch Node.js.
+  const installRoot = path.dirname(path.dirname(configPath))
+  const fromInstallRoot = path.resolve(installRoot, configured)
+  if (fs.existsSync(fromInstallRoot)) return fromInstallRoot
+  return bundled
+}
+
 async function loadAll () {
   if (reloading) return
   reloading = true
@@ -360,7 +387,7 @@ async function loadAll () {
     await stopAll()
     currentConfig = next
     protocolWeave = new ProtocolWeave({
-      packDirectory: next.protocolPackDirectory || path.join(__dirname, '..', 'protocol-packs'),
+      packDirectory: resolveProtocolPackDirectory(next.protocolPackDirectory),
       observationDirectory: next.protocolObservationDirectory || path.join(path.dirname(configPath), 'protocol-observations'),
       captureEnabled: next.protocolCaptureEnabled,
       captureMode: next.protocolCaptureMode,
@@ -376,9 +403,9 @@ async function loadAll () {
       return
     }
     for (const backend of next.backends.filter((item) => item.enabled)) {
-      const relay = makeRelay(backend)
+      const { relay, codecProtocol } = makeRelay(backend)
       relay.listen()
-      active.set(backend.id, { backend, relay })
+      active.set(backend.id, { backend, relay, codecProtocol })
       log(`Full proxy listener ${next.listenHost}:${backend.publicPort}/UDP -> ${backend.host}:${backend.backendPort} (${backend.adapter})`)
     }
     if (active.size === 0) log('No full_proxy backends are enabled. Transparent gateway mode can continue independently.')

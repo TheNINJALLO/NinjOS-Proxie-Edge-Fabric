@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const version = "7.3.4"
+const version = "7.3.5"
 
 type config struct {
 	ServerID        string `json:"serverId"`

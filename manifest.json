@@ -1,6 +1,6 @@
 {
   "name": "Ninj-OS Proxie Edge Fabric",
-  "version": "7.3.4",
+  "version": "7.3.5",
   "platform": "linux-x86_64; Windows 11 host through WSL2",
   "mode": "universal-dual-mode",
   "configuration": {

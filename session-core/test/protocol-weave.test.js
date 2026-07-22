@@ -78,6 +78,14 @@ assert.throws(() => validatePack({ protocol: 5, mode: 'magic', minecraftVersions
 assert.strictEqual(parsePacketId(Buffer.from([0x85, 0x08])), 5)
 assert.strictEqual(firstMismatch(Buffer.from([1, 2]), Buffer.from([1, 3])), 1)
 
+const fallbackWeave = new ProtocolWeave({
+  packDirectory: path.join(root, 'missing-packs'),
+  observationDirectory: path.join(root, 'fallback-observations')
+})
+assert.strictEqual(fallbackWeave.accepts(1001, 1001), true)
+assert.strictEqual(fallbackWeave.summary(1001).supported, true)
+fallbackWeave.close()
+
 weave.close()
 fs.rmSync(root, { recursive: true, force: true })
 console.log('protocol-weave: PASS')
