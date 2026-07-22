@@ -139,6 +139,7 @@ def main() -> None:
         shutil.copy2(ROOT / "start-runtime.sh", temporary_root / "start-runtime.sh")
         os.chmod(temporary_root / "start-runtime.sh", 0o755)
         shutil.copy2(ROOT / "config" / "edge-fabric.example.ini", temporary_root / "edge-fabric.example.ini")
+        os.symlink(ROOT / "session-core", temporary_root / "session-core", target_is_directory=True)
 
         config_dir = temporary_root / "config"
         config_dir.mkdir()
