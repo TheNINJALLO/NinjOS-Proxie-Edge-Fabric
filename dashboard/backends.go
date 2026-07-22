@@ -425,6 +425,10 @@ func (d *dashboard) saveTopology(topology topologyConfig) error {
 func normalizedTopology(topology topologyConfig) topologyConfig {
 	copyValue := topology
 	copyValue.Backends = append([]backendDefinition(nil), topology.Backends...)
+	for index := range copyValue.Backends {
+		// Secret source metadata is intentionally outside backend topology.
+		copyValue.Backends[index].CompanionSecretEnv = ""
+	}
 	sort.Slice(copyValue.Backends, func(left, right int) bool {
 		return copyValue.Backends[left].ID < copyValue.Backends[right].ID
 	})
@@ -571,7 +575,9 @@ func (d *dashboard) decodeBackendDefinition(r *http.Request) (backendDefinition,
 	definition.FallbackBackend = strings.ToLower(strings.TrimSpace(definition.FallbackBackend))
 	definition.ConnectionMode = strings.ToLower(strings.TrimSpace(definition.ConnectionMode))
 	definition.BackendAdapter = strings.ToLower(strings.TrimSpace(definition.BackendAdapter))
-	definition.CompanionSecretEnv = strings.ToUpper(strings.TrimSpace(definition.CompanionSecretEnv))
+	// Credential sources are managed exclusively through the Vault. Accept the
+	// legacy field for API compatibility, but never apply it from this endpoint.
+	definition.CompanionSecretEnv = ""
 	if definition.ConnectionMode == "" {
 		definition.ConnectionMode = "transparent"
 	}
@@ -586,9 +592,6 @@ func (d *dashboard) decodeBackendDefinition(r *http.Request) (backendDefinition,
 	}
 	if definition.Profile == "" {
 		definition.Profile = definition.ID
-	}
-	if definition.CompanionSecretEnv == "" && definition.ID != "" {
-		definition.CompanionSecretEnv = "COMPANION_" + strings.ToUpper(strings.ReplaceAll(definition.ID, "-", "_")) + "_SECRET"
 	}
 	return definition, nil
 }
