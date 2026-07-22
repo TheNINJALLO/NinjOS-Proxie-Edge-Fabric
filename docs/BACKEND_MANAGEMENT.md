@@ -35,7 +35,7 @@ The permanent route port:
 - Must not duplicate another backend route
 - Must not fall inside the temporary transfer-ticket pool
 
-## Save and apply behavior in v7.3.3
+## Save and apply behavior in v7.3.4
 
 When **Save Server** is pressed, the dashboard performs this transaction:
 

@@ -69,6 +69,12 @@ def main():
         })
         subprocess.run([str(BINARY), "--prepare-config", str(config), str(runtime), str(gateway)], env=env, check=True)
         session_config = json.loads((runtime / "session-core.json").read_text())
+        assert session_config["protocolCaptureEnabled"] is True
+        assert session_config["protocolCaptureMode"] == "metadata"
+        assert session_config["protocolCapturePacketIds"] == "30,77"
+        assert session_config["protocolCaptureMaxPacketBytes"] == 65536
+        assert session_config["protocolCaptureDecodeFailures"] is True
+        assert session_config["protocolPackDirectory"] == "session-core/protocol-packs"
         assert [b["id"] for b in session_config["backends"]] == ["lobby"], session_config
         assert session_config["backends"][0]["adapter"] == "vanilla_bridge"
         assert "kingdom" in gateway.read_text() and "zoo" in gateway.read_text()

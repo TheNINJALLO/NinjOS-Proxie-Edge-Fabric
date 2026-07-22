@@ -8,6 +8,7 @@ const path = require('node:path')
 const crypto = require('node:crypto')
 const { NinjOSRelay } = require('./ninjos-relay')
 const { signedHeaders } = require('./hmac')
+const { ProtocolWeave } = require('./protocol-weave')
 
 const configPath = path.resolve(process.env.SESSION_CORE_CONFIG || 'runtime/session-core.json')
 let active = new Map()
@@ -15,6 +16,7 @@ let players = new Map()
 let currentConfig = null
 let reloading = false
 let stateTimer = null
+let protocolWeave = null
 
 function log (...args) { console.log('[Ninj-OS Session Core]', ...args) }
 function warn (...args) { console.warn('[Ninj-OS Session Core]', ...args) }
@@ -25,7 +27,9 @@ function writeRuntimeState () {
   const state = {
     timestamp: Date.now(),
     engine: 'session-core',
-    version: '7.3.3',
+    version: '7.3.4',
+    protocolPacks: protocolWeave?.catalog() || [],
+    protocolInspection: protocolWeave?.inspection() || { enabled: false },
     backends: [...active.values()].map(({ backend, relay }) => ({
       name: backend.id,
       displayName: backend.displayName,
@@ -33,12 +37,16 @@ function writeRuntimeState () {
       healthy: Boolean(relay),
       latencyMs: 0,
       activeSessions: [...players.values()].filter((player) => player.backendId === backend.id).length,
+      activeClientProtocols: [...new Set([...players.values()]
+        .filter((player) => player.backendId === backend.id)
+        .map((player) => player.protocol))].sort((a, b) => a - b),
       publicPort: Number(backend.publicPort),
       backendHost: backend.host,
       backendPort: Number(backend.backendPort),
       connectionMode: 'full_proxy',
       adapter: backend.adapter,
-      status: relay ? 'listening' : 'offline'
+      status: relay ? 'listening' : 'offline',
+      protocolCompatibility: protocolWeave?.summary(Number(relay?.options?.protocolVersion || 0))
     }))
   }
   const temporary = `${stateFile}.tmp`
@@ -186,7 +194,7 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.3 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.4 · Full Proxy Session Core' })
   }
   return true
 }
@@ -221,7 +229,35 @@ function makeRelay (backend) {
     onBackendError: (_player, error) => warn(`${backend.id}:`, error.message)
   })
 
+  const parsePacketBuffer = relay.deserializer.parsePacketBuffer.bind(relay.deserializer)
+  relay.deserializer.parsePacketBuffer = (packet) => {
+    try {
+      return parsePacketBuffer(packet)
+    } catch (error) {
+      const context = relay.__ninjosParseContext
+      if (context) {
+        protocolWeave.observeDecodeFailure(
+          context.player.__ninjosProtocolPack,
+          backend.id,
+          context.direction,
+          packet,
+          error
+        )
+      }
+      throw error
+    }
+  }
+
   relay.on('connect', (player) => {
+    const wrapPacketReader = (method, direction) => {
+      const original = player[method].bind(player)
+      player[method] = (packet) => {
+        relay.__ninjosParseContext = { player, direction }
+        try { return original(packet) } finally { relay.__ninjosParseContext = null }
+      }
+    }
+    wrapPacketReader('readPacket', 'serverbound')
+    wrapPacketReader('readUpstream', 'clientbound')
     const expectedProtocol = Number(relay.options.protocolVersion)
     const originalDecodeLoginJWT = player.decodeLoginJWT.bind(player)
     player.decodeLoginJWT = (...args) => {
@@ -238,22 +274,18 @@ function makeRelay (backend) {
     const originalProtocolCheck = player.handleClientProtocolVersion.bind(player)
     player.handleClientProtocolVersion = (clientProtocol) => {
       const numericProtocol = Number(clientProtocol)
+      const pack = protocolWeave.resolve(numericProtocol)
+      player.__ninjosProtocolPack = pack
       log(
         `${backend.id}: client network protocol=${numericProtocol}; ` +
         `expected=${expectedProtocol}; advertised=${relay.advertisement.version}`
       )
 
-      // Bedrock 26.31-26.33 are wire-compatible 26.30 hotfixes. Some clients
-      // submit a newer build protocol during network negotiation even though
-      // the 26.33 server advertisement remains protocol 1001. Accept only the
-      // narrow hotfix range; later feature releases still require new schemas.
-      if (
-        relay.advertisement.version === '1.26.33' &&
-        numericProtocol >= expectedProtocol &&
-        numericProtocol <= 1024
-      ) {
+      if (protocolWeave.accepts(numericProtocol, expectedProtocol)) {
+        log(`${backend.id}: protocol pack ${pack.name} selected (${pack.mode})`)
         return true
       }
+      warn(`${backend.id}: no reviewed protocol pack can map ${numericProtocol} to codec ${expectedProtocol}`)
       return originalProtocolCheck(clientProtocol)
     }
 
@@ -267,7 +299,7 @@ function makeRelay (backend) {
     player.on('login', async () => {
       log(`${backend.id}: downstream identity accepted for ${player.profile?.name || 'Unknown'}`)
       const key = String(player.profile?.xuid || player.profile?.uuid || crypto.randomUUID())
-      players.set(key, { key, name: player.profile?.name || 'Unknown', xuid: String(player.profile?.xuid || ''), backendId: backend.id, connectedAt: Date.now(), player })
+      players.set(key, { key, name: player.profile?.name || 'Unknown', xuid: String(player.profile?.xuid || ''), backendId: backend.id, protocol: Number(player.version || 0), connectedAt: Date.now(), player })
       try {
         await createIdentityGrant(backend, player)
         await reportPresence(backend, player, 'proxy.player_authenticated')
@@ -283,7 +315,17 @@ function makeRelay (backend) {
       warn(`${backend.id}: downstream error:`, error?.stack || error?.message || String(error))
     })
     player.on('serverbound', ({ name, params }, descriptor) => {
+      protocolWeave.process(player.__ninjosProtocolPack, backend.id, 'serverbound', name, params, {
+        rawBuffer: descriptor?.fullBuffer,
+        serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
+      })
       if (name === 'command_request') handleProxyCommand(backend, player, params, descriptor)
+    })
+    player.on('clientbound', ({ name, params }, descriptor) => {
+      protocolWeave.process(player.__ninjosProtocolPack, backend.id, 'clientbound', name, params, {
+        rawBuffer: descriptor?.fullBuffer,
+        serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
+      })
     })
     player.on('close', (reason) => {
       warn(`${backend.id}: downstream connection closed:`, reason || 'no reason supplied')
@@ -305,6 +347,8 @@ async function stopAll () {
   }
   active.clear()
   players.clear()
+  protocolWeave?.close()
+  protocolWeave = null
   writeRuntimeState()
 }
 
@@ -315,6 +359,17 @@ async function loadAll () {
     const next = readConfig()
     await stopAll()
     currentConfig = next
+    protocolWeave = new ProtocolWeave({
+      packDirectory: next.protocolPackDirectory || path.join(__dirname, '..', 'protocol-packs'),
+      observationDirectory: next.protocolObservationDirectory || path.join(path.dirname(configPath), 'protocol-observations'),
+      captureEnabled: next.protocolCaptureEnabled,
+      captureMode: next.protocolCaptureMode,
+      maxObservationBytes: next.protocolObservationMaxBytes,
+      maxPacketBytes: next.protocolCaptureMaxPacketBytes,
+      selectedPacketIds: next.protocolCapturePacketIds,
+      captureDecodeFailures: next.protocolCaptureDecodeFailures
+    })
+    log(`Protocol Weave loaded ${protocolWeave.catalog().length} reviewed pack(s)`)
     if (!next.enabled) {
       log('Disabled by configuration.')
       writeRuntimeState()

@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 readonly ROOT_DIR="${NINJOS_ROOT_DIR:-/home/container}"
-readonly RELEASE_VERSION="7.3.3"
+readonly RELEASE_VERSION="7.3.4"
 readonly CONFIG_DIR="${ROOT_DIR}/config"
 RUNTIME_DIR="${ROOT_DIR}/runtime"
 readonly CONFIG_FILE="${EDGE_CONFIG_FILE:-${CONFIG_DIR}/edge-fabric.ini}"

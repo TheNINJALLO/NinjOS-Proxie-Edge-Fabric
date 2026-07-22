@@ -470,7 +470,7 @@ function renderState(data) {
       ? "Drain Mode"
       : incident.active
         ? "Incident Mode"
-        : `Online · v${data.version || "7.3.3"}`;
+        : `Online · v${data.version || "7.3.4"}`;
   $("#modeBadge").style.color =
     gateway.maintenance || gateway.drain || incident.active
       ? "var(--amber)"
@@ -629,7 +629,6 @@ function backendPayloadFromForm() {
     requireProxyIdentity: $("#backendRequireIdentity").checked,
     capacity: Number($("#backendCapacity").value),
     fallbackBackend: $("#backendFallbackBackend").value.trim().toLowerCase(),
-    companionSecretEnv: $("#backendSecretEnv").value.trim().toUpperCase(),
     enabled: $("#backendEnabled").checked,
     fallback: $("#backendFallback").checked,
   };
@@ -664,7 +663,6 @@ function openBackendDialog(backend = null) {
   $("#backendRequireIdentity").checked = backend?.requireProxyIdentity ?? false;
   $("#backendCapacity").value = backend?.capacity || 50;
   $("#backendFallbackBackend").value = backend?.fallbackBackend || "";
-  $("#backendSecretEnv").value = backend?.companionSecretEnv || "";
   $("#backendEnabled").checked = backend?.enabled ?? true;
   $("#backendFallback").checked = backend?.fallback ?? false;
   updateBackendModeHelp();
@@ -712,16 +710,28 @@ function renderBackendRegistry(data) {
           backend.publicPort > 0
             ? `:${backend.publicPort}/UDP`
             : "No public route";
-        const secret = backend.companionSecretEnv || "COMPANION_SHARED_SECRET";
+        const secretDescriptor = state.secrets.find(
+          (item) => item.id === `backend.${backend.id}.companion_secret`,
+        );
+        const secret = secretDescriptor?.reference || "Open Secret Vault";
+        const compatibility = live?.protocolCompatibility;
+        const activeProtocols = live?.activeClientProtocols?.length
+          ? ` · active ${live.activeClientProtocols.join(", ")}`
+          : "";
+        const protocolSummary = compatibility?.supported
+          ? `Protocol ${compatibility.protocol} · ${compatibility.mode} · ${compatibility.distinctPackets || 0} packet types observed${activeProtocols}`
+          : backend.connectionMode === "full_proxy"
+            ? "Protocol pack unavailable"
+            : "Protocol-agnostic relay";
         return `<tr>
         <td><b>${esc(backend.displayName)}</b><br><small>${esc(backend.id)}</small></td>
         <td><code>${esc(backend.host)}:${backend.backendPort}</code></td>
         <td>${esc(route)}</td>
         <td><b>${backend.connectionMode === "full_proxy" ? "Full Proxy" : "Transparent Auth"}</b><br><small>${esc(backend.backendAdapter || "proxy_only")} · backend online-mode=${backend.backendOnlineMode ? "true" : "false"}</small></td>
         <td>${esc(backend.profile || backend.id)}<br><small>capacity ${backend.capacity || 50}${backend.requireProxyIdentity ? " · identity required" : ""}</small></td>
-        <td><code>${esc(secret)}</code></td>
+        <td><code>${esc(secret)}</code><br><small>${secretDescriptor?.configured ? `Configured · ${esc(secretDescriptor.fingerprint || "")}` : "Not configured"}</small></td>
         <td><span class="status ${!backend.enabled ? "warn" : live?.healthy ? "good" : "bad"}">${!backend.enabled ? "Disabled" : live?.healthy ? "Healthy" : "Offline"}</span><br><small>${live ? `${Number(live.latencyMs || 0).toFixed(1)} ms · ${live.activeSessions || 0} sessions` : "Awaiting health check"}${backend.fallback ? " · fallback" : ""}</small></td>
-        <td><div class="button-row compact"><button class="ghost backend-test" data-id="${esc(backend.id)}">Test</button><button class="ghost backend-companion" data-id="${esc(backend.id)}">Companion</button><button class="ghost backend-edit" data-id="${esc(backend.id)}">Edit</button><button class="danger backend-delete" data-id="${esc(backend.id)}">Delete</button></div></td>
+        <td><div class="button-row compact"><small>${esc(protocolSummary)}</small><button class="ghost backend-test" data-id="${esc(backend.id)}">Test</button><button class="ghost backend-companion" data-id="${esc(backend.id)}">Secret Vault</button><button class="ghost backend-edit" data-id="${esc(backend.id)}">Edit</button><button class="danger backend-delete" data-id="${esc(backend.id)}">Delete</button></div></td>
       </tr>`;
       })
       .join("") ||
@@ -763,9 +773,11 @@ function renderBackendRegistry(data) {
       const nav = document.querySelector('#nav button[data-view="configuration"]');
       nav?.click();
       await refreshUnifiedConfiguration();
-      $("#companionBackendSelect").value = button.dataset.id;
-      renderSelectedCompanion();
-      $("#companionBackendSelect").scrollIntoView({ behavior: "smooth", block: "center" });
+      const secret = state.secrets.find(
+        (item) => item.id === `backend.${button.dataset.id}.companion_secret`,
+      );
+      if (secret) openSecretEditor(secret);
+      else toast("No backend Secret Vault entry was found.");
     }),
   );
   $$(".backend-delete").forEach((button) =>
@@ -1239,6 +1251,7 @@ function openSecretEditor(secret) {
   if (!secret.canInherit && mode === "inherit") $("#secretMode").value = "dashboard";
   $("#secretEnvironmentVariable").value = secret.environmentVariable || secret.suggestedEnvironmentVariable || "";
   $("#secretValue").value = "";
+  $("#secretValue").minLength = secret.minimumLength || 12;
   $("#generateSecret").disabled = !secret.canGenerate;
   syncSecretEditorMode();
   $("#secretDialog").showModal();
@@ -1469,6 +1482,7 @@ function packetQuery() {
   });
   if ($("#packetDirection").value)
     params.set("direction", $("#packetDirection").value);
+  if ($("#packetTier").value) params.set("tier", $("#packetTier").value);
   if ($("#packetPlayer").value.trim())
     params.set("player", $("#packetPlayer").value.trim());
   if ($("#packetId").value.trim())
@@ -1482,8 +1496,10 @@ async function refreshPackets() {
     return;
   try {
     const data = await api(`/api/packets?${packetQuery()}`);
-    $("#packetStats").textContent =
-      `${data.count} records shown · gameplay payloads are supplied by the Endstone companion`;
+    const tierSummary = Object.entries(data.tiers || {})
+      .map(([tier, count]) => `${tier.replaceAll("_", " ")} ${count}`)
+      .join(" · ");
+    $("#packetStats").textContent = `${data.count} records shown${tierSummary ? ` · ${tierSummary}` : ""}`;
     $("#packetsTable").innerHTML =
       data.records
         .map((packet, index) => {
@@ -1512,9 +1528,70 @@ async function refreshPackets() {
     );
   } catch (_) {}
 }
-function showPacket(packet) {
+async function showPacket(packet) {
+  if (packet.hasDetails && packet.recordId) {
+    try {
+      const response = await api(`/api/packets?layer=protocol&details=1&limit=1&recordId=${encodeURIComponent(packet.recordId)}`);
+      packet = response.records?.[0] || packet;
+    } catch (error) {
+      toast(`Packet details could not be loaded: ${error.message}`);
+    }
+  }
+  const label = packet.packetName || packet.raknetName || `Packet #${packet.packetId ?? "?"}`;
+  const tiers = packet.captureTiers || [];
+  $("#packetDetailTitle").textContent = label;
+  $("#packetDetailSubtitle").textContent = `${packet.backend || packet.serverId || "Unknown backend"} · ${fmtTime(packet.timestamp || packet.receivedAt)}`;
+  $("#packetDetailBadges").innerHTML = [packet.layer || "unknown", packet.direction || "unknown", ...tiers]
+    .map((value) => `<span class="layer-chip ${esc(value)}">${esc(String(value).replaceAll("_", " "))}</span>`)
+    .join("");
+  $("#packetDetailSummary").innerHTML = [
+    detail("Packet ID", packet.packetId ?? "—"),
+    detail("Protocol", packet.protocol ?? "—"),
+    detail("Bytes", packet.bytes ?? packet.size ?? packet.payloadBytes ?? "—"),
+    detail("Action", packet.action || "forward"),
+    detail("Pack", packet.pack || "—"),
+    detail("Sensitive", packet.sensitive ? "Protected — values withheld" : "No sensitive classification"),
+  ].join("");
+  const decoded = packet.decoded ?? packet.payload;
+  $("#packetDecodedSection").hidden = decoded == null;
+  $("#packetDecoded").textContent = decoded == null ? "" : JSON.stringify(decoded, null, 2);
+  $("#packetTranslatedSection").hidden = packet.translatedDecoded == null;
+  $("#packetTranslated").textContent = packet.translatedDecoded == null ? "" : JSON.stringify(packet.translatedDecoded, null, 2);
+  const wire = packet.wire;
+  $("#packetWireSection").hidden = !wire;
+  $("#packetWire").textContent = wire ? formatHexDump(wire.data || "") : "";
+  $("#packetWireSummary").textContent = wire
+    ? `${wire.capturedBytes} of ${wire.originalBytes} bytes${wire.truncated ? " · truncated" : ""} · SHA-256 ${wire.sha256}`
+    : "";
+  const roundTrip = packet.roundTrip;
+  $("#packetRoundTripSection").hidden = !roundTrip;
+  $("#packetRoundTrip").innerHTML = roundTrip ? [
+    detail("Result", roundTrip.exact ? "Exact byte match" : "Mismatch"),
+    detail("First mismatch", roundTrip.mismatchOffset == null || roundTrip.mismatchOffset < 0 ? "None" : `Byte ${roundTrip.mismatchOffset}`),
+    detail("Original", `${roundTrip.originalBytes ?? "—"} bytes`),
+    detail("Re-encoded", `${roundTrip.encodedBytes ?? "—"} bytes`),
+    detail("Original SHA-256", roundTrip.originalSha256 || "—"),
+    detail("Encoded SHA-256", roundTrip.encodedSha256 || roundTrip.error || "—"),
+  ].join("") : "";
+  $("#packetFailureSection").hidden = !packet.decodeError;
+  $("#packetFailure").textContent = packet.decodeError || "";
   $("#packetDetails").textContent = JSON.stringify(packet, null, 2);
   $("#packetDialog").showModal();
+}
+
+function formatHexDump(hex) {
+  const clean = String(hex || "").replace(/[^0-9a-f]/gi, "").toLowerCase();
+  const rows = [];
+  for (let offset = 0; offset < clean.length; offset += 32) {
+    const bytes = clean.slice(offset, offset + 32).match(/.{1,2}/g) || [];
+    const groups = bytes.join(" ").padEnd(47, " ");
+    const ascii = bytes.map((value) => {
+      const code = Number.parseInt(value, 16);
+      return code >= 32 && code <= 126 ? String.fromCharCode(code) : ".";
+    }).join("");
+    rows.push(`${String(offset / 2).padStart(8, "0")}  ${groups}  |${ascii}|`);
+  }
+  return rows.join("\n") || "No wire bytes captured.";
 }
 $("#closePacketDialog").addEventListener("click", () =>
   $("#packetDialog").close(),
@@ -1525,6 +1602,7 @@ $("#pausePackets").addEventListener("click", (event) => {
 });
 [
   "packetLayer",
+  "packetTier",
   "packetDirection",
   "packetPlayer",
   "packetId",
@@ -1544,6 +1622,7 @@ $("#pausePackets").addEventListener("click", (event) => {
 );
 $("#clearPacketFilters").addEventListener("click", () => {
   $("#packetLayer").value = "all";
+  $("#packetTier").value = "";
   $("#packetDirection").value = "";
   $("#packetPlayer").value = "";
   $("#packetId").value = "";
@@ -1789,7 +1868,7 @@ $("#downloadSupportBundle").addEventListener("click", async () => {
     const blob = await response.blob();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "NinjOS-Edge-Fabric-v7.3.3-Support.zip";
+    link.download = "NinjOS-Edge-Fabric-v7.3.4-Support.zip";
     link.click();
     URL.revokeObjectURL(link.href);
     toast("Redacted support bundle generated");

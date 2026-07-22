@@ -377,7 +377,7 @@ func (d *dashboard) loadTopology() (topologyConfig, error) {
 	return topologyFromUnified(document)
 }
 
-func (d *dashboard) saveTopology(topology topologyConfig) error {
+func (d *dashboard) saveTopology(topology topologyConfig, secretRename ...string) error {
 	if err := validateTopology(topology); err != nil {
 		return err
 	}
@@ -393,8 +393,15 @@ func (d *dashboard) saveTopology(topology topologyConfig) error {
 	if err != nil {
 		return err
 	}
+	renamedSecret := ""
+	if len(secretRename) == 2 && secretRename[0] != secretRename[1] {
+		renamedSecret = document.get("backend."+secretRename[0], "companion_secret", "")
+	}
 	if err := applyTopologyToUnified(document, topology); err != nil {
 		return err
+	}
+	if len(secretRename) == 2 && renamedSecret != "" {
+		document.section("backend." + secretRename[1])["companion_secret"] = renamedSecret
 	}
 
 	restore := func(cause error) error {
@@ -425,6 +432,10 @@ func (d *dashboard) saveTopology(topology topologyConfig) error {
 func normalizedTopology(topology topologyConfig) topologyConfig {
 	copyValue := topology
 	copyValue.Backends = append([]backendDefinition(nil), topology.Backends...)
+	for index := range copyValue.Backends {
+		// Secret source metadata is intentionally outside backend topology.
+		copyValue.Backends[index].CompanionSecretEnv = ""
+	}
 	sort.Slice(copyValue.Backends, func(left, right int) bool {
 		return copyValue.Backends[left].ID < copyValue.Backends[right].ID
 	})
@@ -571,7 +582,9 @@ func (d *dashboard) decodeBackendDefinition(r *http.Request) (backendDefinition,
 	definition.FallbackBackend = strings.ToLower(strings.TrimSpace(definition.FallbackBackend))
 	definition.ConnectionMode = strings.ToLower(strings.TrimSpace(definition.ConnectionMode))
 	definition.BackendAdapter = strings.ToLower(strings.TrimSpace(definition.BackendAdapter))
-	definition.CompanionSecretEnv = strings.ToUpper(strings.TrimSpace(definition.CompanionSecretEnv))
+	// Credential sources are managed exclusively through the Vault. Accept the
+	// legacy field for API compatibility, but never apply it from this endpoint.
+	definition.CompanionSecretEnv = ""
 	if definition.ConnectionMode == "" {
 		definition.ConnectionMode = "transparent"
 	}
@@ -586,9 +599,6 @@ func (d *dashboard) decodeBackendDefinition(r *http.Request) (backendDefinition,
 	}
 	if definition.Profile == "" {
 		definition.Profile = definition.ID
-	}
-	if definition.CompanionSecretEnv == "" && definition.ID != "" {
-		definition.CompanionSecretEnv = "COMPANION_" + strings.ToUpper(strings.ReplaceAll(definition.ID, "-", "_")) + "_SECRET"
 	}
 	return definition, nil
 }
@@ -671,7 +681,7 @@ func (d *dashboard) updateBackend(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 404, map[string]string{"error": "Backend not found"})
 		return
 	}
-	if err := d.applyTopologyChange(r, topology, "backend.update", map[string]any{"from": originalID, "backend": definition}); err != nil {
+	if err := d.applyTopologyChange(r, topology, "backend.update", map[string]any{"from": originalID, "backend": definition}, originalID, definition.ID); err != nil {
 		writeJSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
@@ -758,7 +768,7 @@ func (d *dashboard) handleTopologySettings(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-func (d *dashboard) applyTopologyChange(r *http.Request, topology topologyConfig, action string, details any) error {
+func (d *dashboard) applyTopologyChange(r *http.Request, topology topologyConfig, action string, details any, secretRename ...string) error {
 	if err := validateTopology(topology); err != nil {
 		return err
 	}
@@ -770,7 +780,7 @@ func (d *dashboard) applyTopologyChange(r *http.Request, topology topologyConfig
 			return err
 		}
 	}
-	if err := d.saveTopology(topology); err != nil {
+	if err := d.saveTopology(topology, secretRename...); err != nil {
 		return err
 	}
 	if err := d.removeTicketsForStaticPorts(topology); err != nil {

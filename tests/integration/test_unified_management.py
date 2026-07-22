@@ -143,6 +143,7 @@ def main() -> None:
                 "DASHBOARD_TOKEN": "owner-v675-test-1",
                 "NINJOS_ENABLE_LEGACY_OWNER_TOKEN": "1",
                 "COMPANION_SHARED_SECRET": "companion-v675-test",
+                "COMPANION_REDSTONE_SECRET": "redstone-companion-secret-0123456789",
             }
         )
         process = subprocess.Popen(
@@ -174,6 +175,19 @@ def main() -> None:
         }
         status, response = call_api(36471, "owner-v675-test-1", "/api/backend-registry", "POST", backend)
         assert status == 201 and response["saved"] is True
+
+        status, response = call_api(
+            36471,
+            "owner-v675-test-1",
+            "/api/secrets",
+            "PUT",
+            {
+                "id": "backend.redstone.companion_secret",
+                "mode": "environment",
+                "environmentVariable": "COMPANION_REDSTONE_SECRET",
+            },
+        )
+        assert status == 202 and response["saved"] is True
 
         time.sleep(1)
         wait_http(36471)

@@ -1,5 +1,26 @@
 # Changelog
 
+## 7.3.4 - 2026-07-22
+
+### Unified credential management
+
+- Made the Secret Vault the single dashboard editor for service keys, tokens,
+  TOTP, Discord credentials, and per-backend companion secrets.
+- Enforced the same 12-character minimum and type-specific validation for direct
+  values and populated environment references.
+- Prevented backend and advanced INI saves from overwriting Vault-managed values,
+  and added the Session Core internal token to the Vault inventory.
+
+### Protocol Weave foundation
+
+- Added reviewed, data-driven Bedrock protocol packs with fail-closed protocol
+  selection and limited declarative packet translators.
+- Added tiered protocol inspection with metadata, redacted decoded objects,
+  selected post-decryption wire samples, decode-failure evidence, and bounded
+  decode/re-encode comparisons.
+- Rebuilt the dashboard packet details view around decoded fields, translated
+  values, hexadecimal/ASCII wire data, round-trip results, and capture tiers.
+
 ## 7.3.3 - 2026-07-21
 
 ### Bedrock 1.26.33 Full Proxy and health reporting

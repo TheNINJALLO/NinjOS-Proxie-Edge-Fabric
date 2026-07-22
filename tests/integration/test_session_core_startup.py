@@ -39,6 +39,8 @@ def main() -> None:
             "primaryBackend": "lobby",
             "profilesFolder": str(root / "profiles"),
             "stateFile": str(root / "session-core-state.json"),
+            "protocolPackDirectory": str(ROOT / "session-core/protocol-packs"),
+            "protocolObservationDirectory": str(root / "protocol-observations"),
             "backends": [{
                 "id": "lobby", "displayName": "Lobby", "host": "127.0.0.1",
                 "backendPort": 9, "publicPort": port, "enabled": True,
@@ -80,8 +82,10 @@ def main() -> None:
             assert state["backends"][0]["name"] == "lobby"
             assert state["backends"][0]["healthy"] is True
             assert state["backends"][0]["connectionMode"] == "full_proxy"
+            assert state["protocolPacks"][0]["protocol"] == 1001
+            assert state["backends"][0]["protocolCompatibility"]["supported"] is True
             assert "jsp-raknet" not in output or True
-            print("session-core-startup-v7.3.3: PASS")
+            print("session-core-startup-v7.3.4: PASS")
         finally:
             try:
                 if hasattr(os, "killpg"):
