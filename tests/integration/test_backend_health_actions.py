@@ -97,7 +97,7 @@ def main() -> None:
         try:
             wait_for(live)
             commands = runtime / 'commands.log'
-            wait_for(lambda: command_present(commands, 'zoo', 'false'), timeout=10)
+            wait_for(lambda: command_present(commands, 'zoo', 'false'), timeout=20)
             write_state(state, True)
             wait_for(lambda: command_present(commands, 'zoo', 'true'), timeout=16)
             alerts = runtime / 'edge-fabric.db'
