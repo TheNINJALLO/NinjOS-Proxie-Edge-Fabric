@@ -1,5 +1,18 @@
 # Changelog
 
+## 7.3.5 - 2026-07-22
+
+### Zoo Full Proxy recovery
+
+- Fixed backend protocol compatibility reporting so the dashboard uses the
+  listener's configured codec protocol before any player connects.
+- Resolved relative protocol-pack paths from the installation root and added a
+  reviewed built-in protocol `1001` baseline for partial or in-place upgrades.
+- Isolated packet inspection errors from the transport path so observation and
+  decoding diagnostics cannot disconnect an otherwise valid player session.
+- Added regression coverage for startup from a non-install working directory and
+  for operation when the external protocol-pack directory is unavailable.
+
 ## 7.3.4 - 2026-07-22
 
 ### Unified credential management

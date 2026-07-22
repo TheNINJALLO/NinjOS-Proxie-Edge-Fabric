@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly VERSION="7.3.4"
+readonly VERSION="7.3.5"
 readonly INSTALL_ROOT="${NINJOS_INSTALL_ROOT:-/opt/ninjos-proxie}"
 readonly SERVICE_USER="${NINJOS_SERVICE_USER:-ninjos}"
 readonly SERVICE_GROUP="${NINJOS_SERVICE_GROUP:-ninjos}"

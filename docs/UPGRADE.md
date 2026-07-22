@@ -1,4 +1,4 @@
-# Upgrade to v7.3.4
+# Upgrade to v7.3.5
 
 ## Back up
 
@@ -13,20 +13,20 @@ Also retain `/etc/ninjos-proxie.env` on standalone Linux and the Docker `.env` f
 
 ## From v7.2.x
 
-v7.3.4 adds per-backend connection modes, the Session Core, signed identity grants, Vanilla Bridge, and native host agents. Existing backend sections default to Transparent Auth behavior. Do not change a production backend to Full Proxy until its bridge is installed and its private port is firewalled.
+v7.3.5 adds per-backend connection modes, the Session Core, signed identity grants, Vanilla Bridge, and native host agents. Existing backend sections default to Transparent Auth behavior. Do not change a production backend to Full Proxy until its bridge is installed and its private port is firewalled.
 
 ## Pterodactyl
 
-1. Import and assign the v7.3.4 egg.
+1. Import and assign the v7.3.5 egg.
 2. Reinstall.
-3. Upload the v7.3.4 runtime archive.
+3. Upload the v7.3.5 runtime archive.
 4. Start and verify the console version.
 5. Review each backend's connection mode and adapter.
 
 ## Linux
 
 ```bash
-sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.4-Runtime.tar.gz
+sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.5-Runtime.tar.gz
 ```
 
 The installer preserves persistent data and installs the portable Node.js runtime only when required.

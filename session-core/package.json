@@ -1,6 +1,6 @@
 {
   "name": "@theninjallo/ninjos-proxie-session-core",
-  "version": "7.3.4",
+  "version": "7.3.5",
   "private": false,
   "description": "Protocol-aware Bedrock session layer for Ninj-OS Proxie Edge Fabric",
   "license": "AGPL-3.0-only",

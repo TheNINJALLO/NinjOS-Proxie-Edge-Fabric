@@ -1,4 +1,4 @@
-# Ninj-OS Proxie v7.3.4 dashboard login fix
+# Ninj-OS Proxie v7.3.5 dashboard login fix
 
 ## Problem
 
@@ -21,10 +21,10 @@ every 1.5 seconds, the form appeared to refresh and erase itself while typing.
 ## Install
 
 1. Back up `config/` and `runtime/`.
-2. Import `egg-ninjos-proxie-edge-fabric-v7.3.4.json`.
+2. Import `egg-ninjos-proxie-edge-fabric-v7.3.5.json`.
 3. Assign it to the existing proxy server.
 4. Use **Reinstall**.
-5. Upload `NinjOS-Proxie-Edge-Fabric-v7.3.4-Runtime.tar.gz` to the server root.
+5. Upload `NinjOS-Proxie-Edge-Fabric-v7.3.5-Runtime.tar.gz` to the server root.
 6. Start the proxy and open the dashboard.
 
 ## Verification

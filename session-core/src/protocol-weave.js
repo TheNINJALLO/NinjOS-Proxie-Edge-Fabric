@@ -9,6 +9,15 @@ const SAFE_OPERATIONS = new Set(['rename_field', 'add_default', 'drop_field'])
 const REDACTED_KEYS = /token|secret|certificate|chain|key|xuid|identity|uuid|address|device|skin/i
 const SENSITIVE_PACKET_NAMES = /login|handshake|network_settings|resource_pack|client_cache_blob/i
 const SENSITIVE_PACKET_IDS = new Set([1, 3, 4])
+const BUILTIN_BASELINE_PACK = Object.freeze({
+  schemaVersion: 1,
+  name: 'Bedrock 1.26.30-1.26.33 (built-in baseline)',
+  protocol: 1001,
+  minecraftVersions: ['1.26.30', '1.26.31', '1.26.32', '1.26.33'],
+  codecVersion: '1.26.30',
+  mode: 'native',
+  translators: []
+})
 
 function parsePacketId (buffer) {
   if (!Buffer.isBuffer(buffer) || buffer.length === 0) return null
@@ -103,18 +112,19 @@ class ProtocolWeave {
 
   load () {
     this.packs.clear()
-    if (!fs.existsSync(this.packDirectory)) throw new Error(`Protocol pack directory does not exist: ${this.packDirectory}`)
-    for (const entry of fs.readdirSync(this.packDirectory, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue
-      const source = path.join(this.packDirectory, entry.name, 'pack.json')
-      if (!fs.existsSync(source)) continue
-      const pack = validatePack(JSON.parse(fs.readFileSync(source, 'utf8')), source)
-      if (this.packs.has(pack.protocol)) throw new Error(`Duplicate protocol pack ${pack.protocol}`)
-      this.packs.set(pack.protocol, Object.freeze(pack))
-      this.stats.set(pack.protocol, { observedPackets: 0, translatedPackets: 0, lastPacketAt: 0, packetNames: new Set() })
+    if (fs.existsSync(this.packDirectory)) {
+      for (const entry of fs.readdirSync(this.packDirectory, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const source = path.join(this.packDirectory, entry.name, 'pack.json')
+        if (!fs.existsSync(source)) continue
+        const pack = validatePack(JSON.parse(fs.readFileSync(source, 'utf8')), source)
+        if (this.packs.has(pack.protocol)) throw new Error(`Duplicate protocol pack ${pack.protocol}`)
+        this.packs.set(pack.protocol, Object.freeze(pack))
+      }
     }
-    if (this.packs.size === 0) throw new Error(`No protocol packs found in ${this.packDirectory}`)
+    if (this.packs.size === 0) this.packs.set(BUILTIN_BASELINE_PACK.protocol, BUILTIN_BASELINE_PACK)
     for (const pack of this.packs.values()) {
+      this.stats.set(pack.protocol, { observedPackets: 0, translatedPackets: 0, lastPacketAt: 0, packetNames: new Set() })
       if (pack.mode !== 'native' && !this.packs.has(pack.baseProtocol)) {
         throw new Error(`Protocol pack ${pack.protocol} references missing base protocol ${pack.baseProtocol}`)
       }

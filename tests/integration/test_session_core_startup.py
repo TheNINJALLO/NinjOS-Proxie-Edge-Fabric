@@ -39,7 +39,9 @@ def main() -> None:
             "primaryBackend": "lobby",
             "profilesFolder": str(root / "profiles"),
             "stateFile": str(root / "session-core-state.json"),
-            "protocolPackDirectory": str(ROOT / "session-core/protocol-packs"),
+            # Match the generated production configuration and launch from a
+            # different working directory to verify bundled-pack fallback.
+            "protocolPackDirectory": "session-core/protocol-packs",
             "protocolObservationDirectory": str(root / "protocol-observations"),
             "backends": [{
                 "id": "lobby", "displayName": "Lobby", "host": "127.0.0.1",
@@ -52,7 +54,7 @@ def main() -> None:
         env["SESSION_CORE_CONFIG"] = str(config)
         process = subprocess.Popen(
             ["node", str(ROOT / "session-core/src/index.js")],
-            cwd=ROOT,
+            cwd=root,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -85,7 +87,7 @@ def main() -> None:
             assert state["protocolPacks"][0]["protocol"] == 1001
             assert state["backends"][0]["protocolCompatibility"]["supported"] is True
             assert "jsp-raknet" not in output or True
-            print("session-core-startup-v7.3.4: PASS")
+            print("session-core-startup-v7.3.5: PASS")
         finally:
             try:
                 if hasattr(os, "killpg"):
