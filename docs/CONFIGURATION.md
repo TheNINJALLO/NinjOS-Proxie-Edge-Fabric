@@ -13,7 +13,7 @@ Every dashboard save creates a backup, writes atomically, reads the file back, a
 ```text
 [edge]          public host, managed UDP ports, primary backend
 [dashboard]     listener and dashboard sessions
-[session_core]  Full Proxy protocol version, MOTD, internal token
+[session_core]  Full Proxy packet schema, advertised client version, MOTD, internal token
 [companion]     bridge and telemetry defaults
 [transfer]      optional transfer-port pool
 [firewall]      transport protection

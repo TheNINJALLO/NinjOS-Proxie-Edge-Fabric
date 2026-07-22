@@ -490,6 +490,7 @@ func (d *dashboard) handleSupportBundle(w http.ResponseWriter, r *http.Request) 
 	}
 
 	addJSON("gateway-state.json", safeMap(filepath.Join(d.runtimeDir, "gateway-state.json")))
+	addJSON("session-core-state.json", safeMap(filepath.Join(d.runtimeDir, "session-core-state.json")))
 	addJSON("sessions.json", safeSlice(filepath.Join(d.runtimeDir, "sessions.json")))
 	addJSON("presence.json", d.presenceRecords())
 	addJSON("companions.json", d.companionStates())
@@ -600,7 +601,7 @@ func (d *dashboard) metricHistoryLoop() {
 			continue
 		}
 		now := time.Now().UnixMilli()
-		gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+		gateway := d.combinedRuntimeState()
 		for name, key := range map[string]string{
 			"gateway.active_sessions": "activeSessions",
 			"gateway.tracked_ips":     "trackedIps",
@@ -730,7 +731,7 @@ func (d *dashboard) healthActionLoop() {
 		maximumMSPT := float64(propertyInt(values, "maximum_mspt", 80))
 
 		now := time.Now().UnixMilli()
-		gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+		gateway := d.combinedRuntimeState()
 		rawBackends, _ := gateway["backends"].([]any)
 		companionByServer := map[string]map[string]any{}
 		for _, companion := range d.companionStates() {

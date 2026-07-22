@@ -38,6 +38,7 @@ def main() -> None:
             "subMotd": "Startup Test",
             "primaryBackend": "lobby",
             "profilesFolder": str(root / "profiles"),
+            "stateFile": str(root / "session-core-state.json"),
             "backends": [{
                 "id": "lobby", "displayName": "Lobby", "host": "127.0.0.1",
                 "backendPort": 9, "publicPort": port, "enabled": True,
@@ -70,17 +71,32 @@ def main() -> None:
             else:
                 raise AssertionError(f"Session Core did not report a listener:\n{output}")
             assert f"127.0.0.1:{port}/UDP" in output, output
+            state_path = root / "session-core-state.json"
+            wait_for_state = time.time() + 3
+            while time.time() < wait_for_state and not state_path.exists():
+                time.sleep(0.05)
+            state = json.loads(state_path.read_text())
+            assert state["engine"] == "session-core"
+            assert state["backends"][0]["name"] == "lobby"
+            assert state["backends"][0]["healthy"] is True
+            assert state["backends"][0]["connectionMode"] == "full_proxy"
             assert "jsp-raknet" not in output or True
-            print("session-core-startup-v7.3.2: PASS")
+            print("session-core-startup-v7.3.3: PASS")
         finally:
             try:
-                os.killpg(process.pid, signal.SIGTERM)
+                if hasattr(os, "killpg"):
+                    os.killpg(process.pid, signal.SIGTERM)
+                else:
+                    process.terminate()
             except ProcessLookupError:
                 pass
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
+                if hasattr(os, "killpg"):
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
                 process.wait(timeout=5)
 
 

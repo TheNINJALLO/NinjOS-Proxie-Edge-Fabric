@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="7.3.2"
+VERSION="7.3.3"
 COMPANION_VERSION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["companionVersion"])' "${ROOT}/companion/release-metadata.json")"
 COMPANION_ARCHIVE="NinjOS-Endstone-Companion-v${COMPANION_VERSION}-GitHub-Clean.zip"
 VANILLA_BRIDGE_ARCHIVE="NinjOS-Vanilla-Bridge-v${VERSION}.mcpack"
@@ -34,7 +34,6 @@ mkdir -p "${STAGE}/runtime/session-core"
 rsync -a \
   --exclude='/test/' \
   --exclude='/node_modules/typescript/' \
-  --exclude='/node_modules/raknet-native/' \
   --exclude='/node_modules/raknet-node/' \
   --include='/node_modules/minecraft-data/minecraft-data/data/bedrock/common/***' \
   --include='/node_modules/minecraft-data/minecraft-data/data/bedrock/latest/***' \
@@ -54,7 +53,7 @@ rsync -a \
   --exclude='/node_modules/minecraft-data/minecraft-data/data/pc/*' \
   "${ROOT}/session-core/" "${STAGE}/runtime/session-core/"
 
-# Ship only the pure-JavaScript RakNet runtime and the Bedrock protocol data used by v7.3.2.
+# Ship the reviewed native RakNet prebuild and the Bedrock protocol data used by v7.3.3.
 SESSION_STAGE="${STAGE}/runtime/session-core"
 find "${SESSION_STAGE}/node_modules" -type d \
   \( -name test -o -name tests -o -name docs -o -name doc -o -name examples -o -name example \

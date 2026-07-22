@@ -352,7 +352,7 @@ func (d *dashboard) handleReady(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, status, map[string]any{"ready": ready, "gateway": gateway["timestamp"], "timestamp": time.Now().UnixMilli()})
 }
 func (d *dashboard) handleBackendHealth(w http.ResponseWriter, r *http.Request) {
-	gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+	gateway := d.combinedRuntimeState()
 	writeJSON(w, 200, map[string]any{"backends": gateway["backends"], "timestamp": time.Now().UnixMilli()})
 }
 func (d *dashboard) handleWhoAmI(w http.ResponseWriter, r *http.Request) {
@@ -456,6 +456,47 @@ func safeSlice(path string) []any {
 	return []any{}
 }
 
+// combinedRuntimeState presents transparent gateway and Full Proxy Session Core
+// listeners through the same backend-health model. Session Core owns only
+// full_proxy routes, so a backend name can safely replace an older gateway row.
+func (d *dashboard) combinedRuntimeState() map[string]any {
+	gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+	combined := cloneMap(gateway)
+	byID := map[string]map[string]any{}
+	order := []string{}
+	merge := func(state map[string]any) {
+		rawBackends, _ := state["backends"].([]any)
+		for _, raw := range rawBackends {
+			backend, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			id := normalizeCompanionServerID(textField(backend, "name"))
+			if id == "" {
+				continue
+			}
+			if _, exists := byID[id]; !exists {
+				order = append(order, id)
+			}
+			byID[id] = backend
+		}
+	}
+	merge(gateway)
+	sessionCore := safeMap(filepath.Join(d.runtimeDir, "session-core-state.json"))
+	merge(sessionCore)
+	backends := make([]any, 0, len(order))
+	for _, id := range order {
+		backends = append(backends, byID[id])
+	}
+	combined["backends"] = backends
+	if timestamp, ok := number(sessionCore["timestamp"]); ok {
+		if current, exists := number(combined["timestamp"]); !exists || timestamp > current {
+			combined["timestamp"] = timestamp
+		}
+	}
+	return combined
+}
+
 func safeFileID(value string) string {
 	var builder strings.Builder
 	for _, char := range strings.ToLower(value) {
@@ -482,9 +523,9 @@ func (d *dashboard) companionStates() []map[string]any {
 		if connected {
 			status = "healthy"
 			metrics, _ := state["metrics"].(map[string]any)
-			if failures, ok := number(metrics["uploadFailures"]); ok && failures > 0 {
-				status = "degraded"
-			}
+			// uploadFailures is a lifetime counter. A fresh signed report proves
+			// transport is currently working, so old failures must not keep a
+			// recovered companion permanently degraded.
 			if queue, ok := number(metrics["queueDepth"]); ok && queue > 10000 {
 				status = "degraded"
 			}
@@ -639,7 +680,7 @@ func (d *dashboard) presenceSummary() map[string]any {
 }
 
 func (d *dashboard) handleState(w http.ResponseWriter, r *http.Request) {
-	gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+	gateway := d.combinedRuntimeState()
 	reportedCompanions := d.companionStates()
 	companions := d.companionFleet(gateway, reportedCompanions)
 	companion := map[string]any{}
@@ -910,7 +951,7 @@ func randomTicketID() (string, error) {
 }
 
 func (d *dashboard) backendAvailable(destination string) (bool, string) {
-	state := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+	state := d.combinedRuntimeState()
 	backends, _ := state["backends"].([]any)
 	for _, raw := range backends {
 		backend, ok := raw.(map[string]any)
@@ -1586,7 +1627,7 @@ func (d *dashboard) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		return
 	}
-	gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+	gateway := d.combinedRuntimeState()
 	counters, _ := gateway["counters"].(map[string]any)
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	fmt.Fprintf(w, "ninjos_gateway_active_sessions %v\n", gateway["activeSessions"])
@@ -1797,7 +1838,7 @@ func (d *dashboard) discordSummaryLoop() {
 		if d.discordMode() == "disabled" {
 			continue
 		}
-		gateway := safeMap(filepath.Join(d.runtimeDir, "gateway-state.json"))
+		gateway := d.combinedRuntimeState()
 		companion := safeMap(filepath.Join(d.runtimeDir, "companion-state.json"))
 		description := fmt.Sprintf("Sessions: %v\nRouting: %v\nTPS: %v\nMSPT: %v", gateway["activeSessions"], gateway["routingMode"], nested(companion, "metrics", "currentTps"), nested(companion, "metrics", "currentMspt"))
 		_ = d.discordSend(map[string]any{"embeds": []any{map[string]any{"title": "Ninj-OS Proxie Metrics", "description": description, "color": 2619391, "timestamp": time.Now().UTC().Format(time.RFC3339)}}})
