@@ -92,7 +92,10 @@ backends=kingdom|127.0.0.1|32165|false;zoo|127.0.0.1|32131|false
 static_routes=32166|kingdom;32171|zoo
 primary_backend=kingdom
 routing_mode=primary
-transfer_enabled=false
+transfer_enabled=true
+transfer_port_start=32172
+transfer_port_end=32173
+transfer_reserved_ports=32172
 idle_timeout_seconds=30
 handshake_timeout_seconds=10
 cleanup_interval_seconds=1
@@ -141,6 +144,11 @@ live_config_reload_ms=100
         for thread in threads:
             thread.start()
 
+        # Simulate a Full Proxy listener owning a port inside the temporary
+        # transfer pool. The transparent gateway must leave it reserved.
+        reserved_listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        reserved_listener.bind(("0.0.0.0", 32172))
+
         process = subprocess.Popen(
             [str(BINARY), "--config", str(config)],
             stdout=subprocess.PIPE,
@@ -179,13 +187,14 @@ live_config_reload_ms=100
             assert recovered["counters"]["incidentExits"] >= 1
             assert request(newcomer, 32166, b"new-after-recovery") == b"K:new-after-recovery"
 
-            print("gateway-v7.3.5: PASS")
+            print("gateway-v7.3.6: PASS")
         finally:
             process.send_signal(signal.SIGTERM)
             try:
                 process.wait(timeout=4)
             except subprocess.TimeoutExpired:
                 process.kill()
+            reserved_listener.close()
             stop.set()
 
 

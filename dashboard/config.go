@@ -652,6 +652,7 @@ func prepareUnifiedConfig(configPath, runtimeDir, gatewayPath string) error {
 	routeEntries := make([]string, 0, len(topology.Backends))
 	fullProxyBackends := make([]map[string]any, 0)
 	fullProxyEnabledCount := 0
+	fullProxyPublicPorts := make([]string, 0)
 	transparentCount := 0
 	defaultSecret := resolveConfigValue(document.get("companion", "default_secret", "env:COMPANION_SHARED_SECRET"))
 	companionLines := []string{"default=" + defaultSecret}
@@ -666,6 +667,9 @@ func prepareUnifiedConfig(configPath, runtimeDir, gatewayPath string) error {
 		if backend.ConnectionMode == "full_proxy" {
 			if backend.Enabled {
 				fullProxyEnabledCount++
+				if backend.PublicPort > 0 {
+					fullProxyPublicPorts = append(fullProxyPublicPorts, strconv.Itoa(backend.PublicPort))
+				}
 			}
 			fullProxyBackends = append(fullProxyBackends, map[string]any{
 				"id":                   backend.ID,
@@ -723,6 +727,7 @@ routing_mode=%s
 transfer_enabled=%t
 transfer_port_start=%d
 transfer_port_end=%d
+transfer_reserved_ports=%s
 transfer_ticket_file=%s
 transfer_ticket_reload_ms=200
 transfer_require_source_ip=%t
@@ -791,6 +796,7 @@ live_config_reload_ms=1000
 		document.getBool("transfer", "enabled", true),
 		document.getInt("transfer", "port_start", 25572, 1, 65535),
 		document.getInt("transfer", "port_end", 25581, 1, 65535),
+		strings.Join(fullProxyPublicPorts, ","),
 		filepath.Join(runtimeDir, "transfer-tickets.tsv"),
 		document.getBool("transfer", "require_source_ip", true),
 		document.getInt("firewall", "max_sessions", 512, 1, 100000),

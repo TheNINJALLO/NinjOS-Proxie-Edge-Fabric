@@ -79,7 +79,7 @@ def main() -> None:
             r"|_| \_|___|_| \_|\___/        \___/|____/",
             "P R O X I E",
             "Verified Identity Gateway",
-            "Version         : v7.3.5",
+            "Version         : v7.3.6",
             "FIRST-RUN OWNER SETUP REQUIRED",
             "Setup code:",
             "Gateway Mode    : Universal dual-mode Bedrock edge",
@@ -90,7 +90,8 @@ def main() -> None:
             "Reference URL   : github.com/SculkCatalystMC/ProxyPass",
             "[Ninj-OS Proxie] Startup settings applied",
             "[Ninj-OS Proxie] Gateway ready",
-            "Launching transparent, protocol-agnostic UDP relay",
+            "[Ninj-OS Proxie] Runtime ready",
+            "Configuration prepared; starting data-plane listeners",
         ]
         missing = [item for item in required if item not in output]
         if missing:
@@ -98,7 +99,7 @@ def main() -> None:
         if " _   _ _       _        ___  ____" in output:
             raise AssertionError(f"Legacy NINI-OS splash returned. Output:\n{output}")
 
-        print("startup-splash-v7.3.5: PASS")
+        print("startup-splash-v7.3.6: PASS")
 
 
 if __name__ == "__main__":

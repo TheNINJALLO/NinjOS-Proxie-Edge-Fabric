@@ -55,6 +55,13 @@ def dashboard_child_pid(supervisor_pid: int) -> int:
         raise RuntimeError("dashboard child process was not found")
     return int(output[0])
 
+
+def session_core_child_pid(supervisor_pid: int) -> int:
+    output = subprocess.check_output(["pgrep", "-P", str(supervisor_pid), "node"], text=True).strip().splitlines()
+    if not output:
+        raise RuntimeError("Session Core child process was not found")
+    return int(output[0])
+
 def udp_backend(port: int, prefix: bytes, stop: threading.Event) -> None:
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind(("127.0.0.1", port))
@@ -94,6 +101,10 @@ def wait_udp(port: int, expected: bytes, timeout: float = 10.0) -> None:
 
 def build_test_config(destination: Path) -> None:
     text = (ROOT / "config" / "edge-fabric.example.ini").read_text()
+    text = text.replace(
+        "public_port = 19134\nenabled = false\nfallback = true",
+        "public_port = 36274\nenabled = true\nfallback = true",
+    )
     replacements = [
         ("185.83.152.144", "127.0.0.1"),
         ("25566", "36266"),
@@ -158,6 +169,7 @@ def main() -> None:
         wait_http(36471)
         wait_udp(36266, b"K:probe")
         dashboard_pid_before = dashboard_child_pid(process.pid)
+        session_core_pid_before = session_core_child_pid(process.pid)
 
         _, registry = call_api(36471, "owner-v675-test-1", "/api/backend-registry")
         assert {backend["id"] for backend in registry["topology"]["backends"]} == {"kingdom", "zoo", "lobby"}
@@ -193,6 +205,8 @@ def main() -> None:
         wait_http(36471)
         wait_udp(36272, b"R:probe")
         assert dashboard_child_pid(process.pid) == dashboard_pid_before, "backend save restarted the dashboard"
+        session_core_pid_after = session_core_child_pid(process.pid)
+        assert session_core_pid_after != session_core_pid_before, "backend save did not restart Session Core"
 
         _, registry = call_api(36471, "owner-v675-test-1", "/api/backend-registry")
         assert 36272 not in registry["availableTransferPorts"]

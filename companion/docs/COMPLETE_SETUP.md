@@ -4,7 +4,7 @@ This guide covers installation, configuration, building, verification, upgrades,
 and troubleshooting for the Ninj-OS Proxie Endstone Companion.
 
 ```text
-Edge Fabric release: 7.3.5
+Edge Fabric release: 7.3.6
 Companion release: 3.6.0
 Default Endstone build target: 0.11.6
 Default dashboard and companion API port: 25571/TCP

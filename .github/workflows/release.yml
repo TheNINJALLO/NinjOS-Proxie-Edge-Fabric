@@ -51,12 +51,12 @@ jobs:
             gh release create "${GITHUB_REF_NAME}" --generate-notes --verify-tag
           fi
           gh release upload "${GITHUB_REF_NAME}" --clobber \
-            "dist/egg-ninjos-proxie-edge-fabric-v7.3.5.json" \
+            "dist/egg-ninjos-proxie-edge-fabric-v7.3.6.json" \
             "dist/install-standalone.sh" \
             "dist/install-windows.ps1" \
-            "dist/NinjOS-Proxie-Edge-Fabric-v7.3.5-Runtime.tar.gz" \
-            "dist/NinjOS-Proxie-Edge-Fabric-v7.3.5-Source.zip" \
-            "dist/NinjOS-Vanilla-Bridge-v7.3.5.mcpack"
+            "dist/NinjOS-Proxie-Edge-Fabric-v7.3.6-Runtime.tar.gz" \
+            "dist/NinjOS-Proxie-Edge-Fabric-v7.3.6-Source.zip" \
+            "dist/NinjOS-Vanilla-Bridge-v7.3.6.mcpack"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
