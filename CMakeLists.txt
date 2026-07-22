@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ninjos_edge_fabric VERSION 7.3.5 LANGUAGES CXX)
+project(ninjos_edge_fabric VERSION 7.3.6 LANGUAGES CXX)
 
 option(NINJOS_STATIC_LINK "Build a fully static gateway binary" ON)
 

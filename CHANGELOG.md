@@ -1,5 +1,20 @@
 # Changelog
 
+## 7.3.6 - 2026-07-22
+
+### Data-plane restart and port ownership
+
+- Reserved enabled Full Proxy public ports from the temporary transfer pool so
+  the transparent gateway and Session Core cannot bind the same UDP allocation.
+- Restarted Session Core together with the gateway after backend, mode, port, or
+  service configuration changes instead of leaving stale listeners running.
+- Added post-bind health checks and a truthful `Runtime ready` marker for
+  Pterodactyl, while retaining the legacy marker for already imported eggs.
+- Made listener startup fail clearly when a process cannot bind or publish health
+  rather than leaving the panel indefinitely in a starting state.
+- Added regression coverage for transfer-pool reservations and Session Core PID
+  replacement during dashboard-managed topology restarts.
+
 ## 7.3.5 - 2026-07-22
 
 ### Zoo Full Proxy recovery

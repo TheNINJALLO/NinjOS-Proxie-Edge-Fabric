@@ -387,6 +387,7 @@ struct Config {
     bool transfer_enabled{true};
     std::uint16_t transfer_port_start{25600};
     std::uint16_t transfer_port_end{25619};
+    std::unordered_set<std::uint16_t> transfer_reserved_ports;
     std::string transfer_ticket_file{"runtime/transfer-tickets.tsv"};
     int transfer_ticket_reload_ms{200};
     bool transfer_require_source_ip{true};
@@ -519,6 +520,22 @@ std::vector<StaticRouteConfig> parse_static_routes(const std::string& raw) {
     return result;
 }
 
+std::unordered_set<std::uint16_t> parse_port_set(const std::string& raw) {
+    std::unordered_set<std::uint16_t> result;
+    for (const auto& item_raw : split(raw, ',')) {
+        const auto item = trim(item_raw);
+        if (item.empty()) {
+            continue;
+        }
+        const auto value = parse_unsigned(item, 0);
+        if (value == 0 || value > 65535) {
+            throw std::runtime_error("Invalid reserved transfer port: " + item);
+        }
+        result.insert(static_cast<std::uint16_t>(value));
+    }
+    return result;
+}
+
 
 Config load_config(const fs::path& path) {
     const auto values = load_properties(path);
@@ -545,6 +562,7 @@ Config load_config(const fs::path& path) {
     cfg.transfer_enabled = parse_bool(property(values, "transfer_enabled", "true"), true);
     cfg.transfer_port_start = static_cast<std::uint16_t>(parse_unsigned(property(values, "transfer_port_start", "25600"), 25600));
     cfg.transfer_port_end = static_cast<std::uint16_t>(parse_unsigned(property(values, "transfer_port_end", "25619"), 25619));
+    cfg.transfer_reserved_ports = parse_port_set(property(values, "transfer_reserved_ports", ""));
     cfg.transfer_ticket_file = property(values, "transfer_ticket_file", "runtime/transfer-tickets.tsv");
     cfg.transfer_ticket_reload_ms = static_cast<int>(parse_unsigned(property(values, "transfer_ticket_reload_ms", "200"), 200));
     cfg.transfer_require_source_ip = parse_bool(property(values, "transfer_require_source_ip", "true"), true);
@@ -1020,7 +1038,8 @@ public:
         if (config_.transfer_enabled) {
             for (std::uint32_t port = config_.transfer_port_start;
                  port <= config_.transfer_port_end; ++port) {
-                if (port != config_.listen_port) {
+                if (port != config_.listen_port &&
+                    !config_.transfer_reserved_ports.contains(static_cast<std::uint16_t>(port))) {
                     add_listener(static_cast<std::uint16_t>(port));
                 }
             }

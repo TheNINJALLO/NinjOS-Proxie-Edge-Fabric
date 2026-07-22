@@ -27,6 +27,11 @@ Every dashboard save creates a backup, writes atomically, reads the file back, a
 
 ## Backend fields
 
+Enabled Full Proxy public ports are automatically reserved from the temporary
+transfer pool. It is valid for an assigned backend port to fall inside the
+configured transfer range; the gateway binds only the remaining unassigned
+ports. Do not run a second proxy process against the same allocation.
+
 ```ini
 [backend.example]
 connection_mode = transparent       # transparent or full_proxy

@@ -1,14 +1,14 @@
 # Pterodactyl installation
 
-This guide installs Ninj-OS Proxie Edge Fabric v7.3.5 on one Pterodactyl server. The same proxy instance can route Transparent Auth and Full Proxy backends.
+This guide installs Ninj-OS Proxie Edge Fabric v7.3.6 on one Pterodactyl server. The same proxy instance can route Transparent Auth and Full Proxy backends.
 
 ## Files
 
 Use these files from the deployment ZIP:
 
 ```text
-egg-ninjos-proxie-edge-fabric-v7.3.5.json
-NinjOS-Proxie-Edge-Fabric-v7.3.5-Runtime.tar.gz
+egg-ninjos-proxie-edge-fabric-v7.3.6.json
+NinjOS-Proxie-Edge-Fabric-v7.3.6-Runtime.tar.gz
 ```
 
 The runtime already contains the gateway, dashboard, Bedrock Session Core dependencies, vanilla bridge pack, Linux and Windows vanilla agents, and Endstone source package.
@@ -18,7 +18,7 @@ The runtime already contains the gateway, dashboard, Bedrock Session Core depend
 1. Open the Pterodactyl administrator panel.
 2. Open **Nests** and select the target nest.
 3. Choose **Import Egg**.
-4. Import the v7.3.5 egg.
+4. Import the v7.3.6 egg.
 5. Create a new server or assign the egg to the existing proxy server.
 
 The egg uses a Node.js 22 image because Full Proxy Mode uses the bundled Session Core. Transparent Auth Mode also works in the same image.
@@ -105,6 +105,12 @@ Choose one adapter:
 The public UDP allocation belongs to Ninj-OS. The backend server listens on a different private UDP allocation.
 
 ## 8. Verify
+
+The panel changes from **Starting** to **Running** only after the configured
+listeners bind successfully and publish runtime health. The console must show
+`[Ninj-OS Proxie] Runtime ready`. An `Address already in use` error stops startup
+clearly; verify each allocation belongs to only one backend or transfer listener,
+then restart the container.
 
 For every route:
 

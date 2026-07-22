@@ -2,7 +2,7 @@
 
 ## Upload the repository
 
-1. Extract `NinjOS-Proxie-Edge-Fabric-v7.3.5-GitHub-Repository.zip`.
+1. Extract `NinjOS-Proxie-Edge-Fabric-v7.3.6-GitHub-Repository.zip`.
 2. Create an empty GitHub repository.
 3. Upload the extracted contents, including `.github`.
 4. Use `main` as the default branch.
@@ -19,20 +19,20 @@ The GitHub ZIP excludes generated `node_modules`, build directories, caches, run
 ## Create a release
 
 ```bash
-git tag v7.3.5
-git push origin v7.3.5
+git tag v7.3.6
+git push origin v7.3.6
 ```
 
 The public release contains exactly these seven supported downloads:
 
 ```text
-egg-ninjos-proxie-edge-fabric-v7.3.5.json
+egg-ninjos-proxie-edge-fabric-v7.3.6.json
 install-standalone.sh
 install-windows.ps1
 NinjOS-Endstone-Companion-v3.6.0-Endstone-0.11.6-Linux-x86_64.zip
-NinjOS-Proxie-Edge-Fabric-v7.3.5-Runtime.tar.gz
-NinjOS-Proxie-Edge-Fabric-v7.3.5-Source.zip
-NinjOS-Vanilla-Bridge-v7.3.5.mcpack
+NinjOS-Proxie-Edge-Fabric-v7.3.6-Runtime.tar.gz
+NinjOS-Proxie-Edge-Fabric-v7.3.6-Source.zip
+NinjOS-Vanilla-Bridge-v7.3.6.mcpack
 ```
 
 ## Manual packaging

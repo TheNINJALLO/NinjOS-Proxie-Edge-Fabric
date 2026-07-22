@@ -51,6 +51,7 @@ def main():
         config = root / "edge-fabric.ini"
         text = (ROOT / "config/edge-fabric.example.ini").read_text().replace("185.83.152.144", "127.0.0.1")
         text = text.replace("enabled = false\nfallback = true\nprotection_profile = default\ncompanion_secret = env:COMPANION_LOBBY_SECRET", "enabled = true\nfallback = true\nprotection_profile = default\ncompanion_secret = env:COMPANION_LOBBY_SECRET")
+        text = text.replace("public_port = 19134", "public_port = 25572")
         config.write_text(text)
         gateway = root / "gateway.conf"
         env = os.environ.copy()
@@ -79,6 +80,7 @@ def main():
         assert session_config["backends"][0]["adapter"] == "vanilla_bridge"
         assert "kingdom" in gateway.read_text() and "zoo" in gateway.read_text()
         assert "lobby" not in gateway.read_text()
+        assert "transfer_reserved_ports=25572" in gateway.read_text()
         gateway_topology = runtime / "gateway-topology.properties"
         assert f"topology_file={gateway_topology}" in gateway.read_text()
         assert "kingdom" in gateway_topology.read_text() and "zoo" in gateway_topology.read_text()

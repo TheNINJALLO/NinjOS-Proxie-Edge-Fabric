@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 readonly ROOT_DIR="${NINJOS_ROOT_DIR:-/home/container}"
-readonly RELEASE_VERSION="7.3.5"
+readonly RELEASE_VERSION="7.3.6"
 readonly CONFIG_DIR="${ROOT_DIR}/config"
 RUNTIME_DIR="${ROOT_DIR}/runtime"
 readonly CONFIG_FILE="${EDGE_CONFIG_FILE:-${CONFIG_DIR}/edge-fabric.ini}"
@@ -110,8 +110,7 @@ print_runtime_details() {
         "${backend_count}" "${backend_names}"
     printf '[Ninj-OS Proxie] Transfer pool: %s:%s-%s/UDP\n' \
         "${TRANSFER_PUBLIC_HOST:-${public_host}}" "${TRANSFER_PORT_START}" "${TRANSFER_PORT_END}"
-    printf '[Ninj-OS Proxie] Gateway ready\n'
-    printf '[Ninj-OS Proxie] Launching transparent, protocol-agnostic UDP relay...\n\n'
+    printf '[Ninj-OS Proxie] Configuration prepared; starting data-plane listeners...\n\n'
 }
 
 stop_dashboard() {
@@ -234,10 +233,31 @@ start_session_core() {
     [[ -f ./session-core/src/index.js ]] || fail "session-core/src/index.js is missing from the runtime."
     [[ -d ./session-core/node_modules/bedrock-protocol ]] || fail "Bundled Bedrock protocol dependencies are missing."
     log "Starting protocol-aware full-proxy session core for ${FULL_PROXY_BACKEND_COUNT} backend(s)."
+    rm -f "${RUNTIME_DIR}/session-core-state.json"
     SESSION_CORE_CONFIG="${SESSION_CORE_CONFIG:-${RUNTIME_DIR}/session-core.json}" "${node_command}" ./session-core/src/index.js &
     SESSION_CORE_PID=$!
-    sleep 0.5
-    kill -0 "${SESSION_CORE_PID}" 2>/dev/null || fail "Full-proxy session core stopped during startup."
+    for _ in $(seq 1 50); do
+        kill -0 "${SESSION_CORE_PID}" 2>/dev/null || fail "Full-proxy session core stopped during startup."
+        [[ -s "${RUNTIME_DIR}/session-core-state.json" ]] && return
+        sleep 0.2
+    done
+    fail "Full-proxy session core did not publish listener health within 10 seconds."
+}
+
+wait_for_gateway_ready() {
+    for _ in $(seq 1 50); do
+        kill -0 "${GATEWAY_PID}" 2>/dev/null || return 1
+        [[ -s "${RUNTIME_DIR}/gateway-state.json" ]] && return 0
+        sleep 0.2
+    done
+    return 1
+}
+
+announce_runtime_ready() {
+    # Keep the legacy marker for already-imported eggs while new eggs use the
+    # more accurate service-neutral readiness marker.
+    log "Gateway ready"
+    log "Runtime ready"
 }
 
 cd "${ROOT_DIR}"
@@ -272,6 +292,7 @@ CONSOLE_PID=$!
 if [[ "${TRANSPARENT_BACKEND_COUNT:-0}" == "0" ]]; then
     log "No transparent backends configured; waiting on the full-proxy session core."
     [[ -n "${SESSION_CORE_PID}" ]] || fail "No enabled backend services are configured."
+    announce_runtime_ready
     wait "${SESSION_CORE_PID}"
     exit $?
 fi
@@ -279,29 +300,43 @@ fi
 while true; do
     log "Starting transparent gateway process for ${TRANSPARENT_BACKEND_COUNT} backend(s)."
     set +e
+    rm -f "${RUNTIME_DIR}/gateway-state.json"
     ./NinjOSEdge --config "${GATEWAY_CONFIG}" &
     GATEWAY_PID=$!
+    gateway_ready=0
+    if wait_for_gateway_ready; then
+        gateway_ready=1
+        announce_runtime_ready
+    else
+        kill -TERM "${GATEWAY_PID}" 2>/dev/null || true
+    fi
     wait "${GATEWAY_PID}"
     exit_code=$?
     GATEWAY_PID=""
     set -e
 
     if [[ "${exit_code}" == 75 ]]; then
-        log "Backend registry changed. Regenerating files and restarting only the gateway."
+        log "Backend registry changed. Restarting the complete data plane."
+        stop_session_core
         prepare_config
+        start_session_core
         print_first_run_setup
         print_runtime_details
         continue
     fi
 
     if [[ "${exit_code}" == 76 ]]; then
-        log "Dashboard-affecting configuration changed. Restarting dashboard and gateway."
+        log "Dashboard-affecting configuration changed. Restarting managed services."
+        stop_session_core
         prepare_config
         start_dashboard
+        start_session_core
         print_first_run_setup
         print_runtime_details
         continue
     fi
+
+    [[ "${gateway_ready}" == 1 ]] || fail "Transparent gateway did not bind and publish health within 10 seconds."
 
     stop_dashboard
     exit "${exit_code}"
