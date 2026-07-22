@@ -315,8 +315,6 @@ while true; do
     GATEWAY_PID=""
     set -e
 
-    [[ "${gateway_ready}" == 1 ]] || fail "Transparent gateway did not bind and publish health within 10 seconds."
-
     if [[ "${exit_code}" == 75 ]]; then
         log "Backend registry changed. Restarting the complete data plane."
         stop_session_core
@@ -337,6 +335,8 @@ while true; do
         print_runtime_details
         continue
     fi
+
+    [[ "${gateway_ready}" == 1 ]] || fail "Transparent gateway did not bind and publish health within 10 seconds."
 
     stop_dashboard
     exit "${exit_code}"
