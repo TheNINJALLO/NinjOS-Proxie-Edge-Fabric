@@ -14,9 +14,42 @@ let active = new Map()
 let players = new Map()
 let currentConfig = null
 let reloading = false
+let stateTimer = null
 
 function log (...args) { console.log('[Ninj-OS Session Core]', ...args) }
 function warn (...args) { console.warn('[Ninj-OS Session Core]', ...args) }
+
+function writeRuntimeState () {
+  if (!currentConfig) return
+  const stateFile = path.resolve(currentConfig.stateFile || path.join(path.dirname(configPath), 'session-core-state.json'))
+  const state = {
+    timestamp: Date.now(),
+    engine: 'session-core',
+    version: '7.3.3',
+    backends: [...active.values()].map(({ backend, relay }) => ({
+      name: backend.id,
+      displayName: backend.displayName,
+      enabled: true,
+      healthy: Boolean(relay),
+      latencyMs: 0,
+      activeSessions: [...players.values()].filter((player) => player.backendId === backend.id).length,
+      publicPort: Number(backend.publicPort),
+      backendHost: backend.host,
+      backendPort: Number(backend.backendPort),
+      connectionMode: 'full_proxy',
+      adapter: backend.adapter,
+      status: relay ? 'listening' : 'offline'
+    }))
+  }
+  const temporary = `${stateFile}.tmp`
+  try {
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true })
+    fs.writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 })
+    fs.renameSync(temporary, stateFile)
+  } catch (error) {
+    warn('Could not write Full Proxy health state:', error.message)
+  }
+}
 
 function readConfig () {
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
@@ -153,7 +186,7 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.2 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.3 · Full Proxy Session Core' })
   }
   return true
 }
@@ -163,12 +196,23 @@ function makeRelay (backend) {
     version: currentConfig.version,
     host: currentConfig.listenHost || '0.0.0.0',
     port: Number(backend.publicPort),
-    offline: false,
+    // Bedrock 26.33 sends the OIDC Token identity form without the legacy
+    // Certificate/chain container. bedrock-protocol 3.57 only parses that
+    // token form on its offline server path; encryption and Full Proxy packet
+    // termination remain enabled, while strict legacy-chain verification is
+    // unavailable for this hotfix login format.
+    offline: true,
     maxPlayers: Number(backend.capacity || 50),
-    motd: { motd: currentConfig.motd, levelName: `${currentConfig.subMotd} · ${backend.displayName}` },
+    motd: {
+      motd: currentConfig.motd,
+      levelName: `${currentConfig.subMotd} · ${backend.displayName}`,
+      // Bedrock 26.31-26.33 retain the 26.30 packet protocol (1001), but
+      // clients expect the current hotfix version in the server advertisement.
+      version: currentConfig.advertisedVersion || '1.26.33'
+    },
     destination: { host: backend.host, port: Number(backend.backendPort), offline: true },
     profilesFolder: currentConfig.profilesFolder,
-    raknetBackend: 'jsp-raknet',
+    raknetBackend: 'raknet-native',
     enableChunkCaching: false,
     backendId: backend.id,
     logging: false
@@ -178,7 +222,50 @@ function makeRelay (backend) {
   })
 
   relay.on('connect', (player) => {
+    const expectedProtocol = Number(relay.options.protocolVersion)
+    const originalDecodeLoginJWT = player.decodeLoginJWT.bind(player)
+    player.decodeLoginJWT = (...args) => {
+      try {
+        return originalDecodeLoginJWT(...args)
+      } catch (error) {
+        warn(
+          `${backend.id}: downstream authentication verification failed:`,
+          error?.stack || error?.message || String(error)
+        )
+        throw error
+      }
+    }
+    const originalProtocolCheck = player.handleClientProtocolVersion.bind(player)
+    player.handleClientProtocolVersion = (clientProtocol) => {
+      const numericProtocol = Number(clientProtocol)
+      log(
+        `${backend.id}: client network protocol=${numericProtocol}; ` +
+        `expected=${expectedProtocol}; advertised=${relay.advertisement.version}`
+      )
+
+      // Bedrock 26.31-26.33 are wire-compatible 26.30 hotfixes. Some clients
+      // submit a newer build protocol during network negotiation even though
+      // the 26.33 server advertisement remains protocol 1001. Accept only the
+      // narrow hotfix range; later feature releases still require new schemas.
+      if (
+        relay.advertisement.version === '1.26.33' &&
+        numericProtocol >= expectedProtocol &&
+        numericProtocol <= 1024
+      ) {
+        return true
+      }
+      return originalProtocolCheck(clientProtocol)
+    }
+
+    player.on('loggingIn', (body) => {
+      log(
+        `${backend.id}: client login protocol=${body.params.protocol_version}; ` +
+        `expected=${relay.options.protocolVersion}; advertised=${relay.advertisement.version}`
+      )
+    })
+
     player.on('login', async () => {
+      log(`${backend.id}: downstream identity accepted for ${player.profile?.name || 'Unknown'}`)
       const key = String(player.profile?.xuid || player.profile?.uuid || crypto.randomUUID())
       players.set(key, { key, name: player.profile?.name || 'Unknown', xuid: String(player.profile?.xuid || ''), backendId: backend.id, connectedAt: Date.now(), player })
       try {
@@ -189,14 +276,24 @@ function makeRelay (backend) {
         if (backend.requireProxyIdentity) player.disconnect(`Ninj-OS identity verification failed: ${error.message}`)
       }
     })
+    player.on('join', () => {
+      log(`${backend.id}: downstream encrypted handshake completed for ${player.profile?.name || 'Unknown'}`)
+    })
+    player.on('error', (error) => {
+      warn(`${backend.id}: downstream error:`, error?.stack || error?.message || String(error))
+    })
     player.on('serverbound', ({ name, params }, descriptor) => {
       if (name === 'command_request') handleProxyCommand(backend, player, params, descriptor)
     })
-    player.on('close', () => {
+    player.on('close', (reason) => {
+      warn(`${backend.id}: downstream connection closed:`, reason || 'no reason supplied')
       const key = String(player.profile?.xuid || player.profile?.uuid || '')
       if (key) players.delete(key)
       reportPresence(backend, player, 'proxy.player_disconnected')
     })
+  })
+  relay.on('join', (downstream) => {
+    log(`${backend.id}: upstream Endstone session established for ${downstream.profile?.name || 'Unknown'}`)
   })
   relay.on('error', (error) => warn(`${backend.id} relay error:`, error.message))
   return relay
@@ -208,6 +305,7 @@ async function stopAll () {
   }
   active.clear()
   players.clear()
+  writeRuntimeState()
 }
 
 async function loadAll () {
@@ -219,6 +317,7 @@ async function loadAll () {
     currentConfig = next
     if (!next.enabled) {
       log('Disabled by configuration.')
+      writeRuntimeState()
       return
     }
     for (const backend of next.backends.filter((item) => item.enabled)) {
@@ -228,6 +327,8 @@ async function loadAll () {
       log(`Full proxy listener ${next.listenHost}:${backend.publicPort}/UDP -> ${backend.host}:${backend.backendPort} (${backend.adapter})`)
     }
     if (active.size === 0) log('No full_proxy backends are enabled. Transparent gateway mode can continue independently.')
+    writeRuntimeState()
+    if (!stateTimer) stateTimer = setInterval(writeRuntimeState, 1000)
   } finally {
     reloading = false
   }

@@ -165,6 +165,7 @@ session_minutes = 480
 [session_core]
 enabled = true
 version = 1.26.30
+advertised_version = 1.26.33
 listen_host = 0.0.0.0
 internal_token = env:SESSION_CORE_TOKEN
 motd = Ninj-OS Proxie Network
@@ -352,7 +353,7 @@ func serializeUnifiedConfig(document *iniDocument) (string, error) {
 	keyOrder := map[string][]string{
 		"edge":         {"config_version", "instance_name", "public_host", "primary_allocation_port", "managed_public_udp_ports", "primary_backend", "routing_mode"},
 		"dashboard":    {"port", "public_host", "owner_username", "owner_token", "operator_token", "viewer_token", "metrics_token", "totp_secret", "session_minutes"},
-		"session_core": {"enabled", "version", "listen_host", "internal_token", "motd", "sub_motd", "require_transfer_ticket", "command_prefix", "profiles_folder"},
+		"session_core": {"enabled", "version", "advertised_version", "listen_host", "internal_token", "motd", "sub_motd", "require_transfer_ticket", "command_prefix", "profiles_folder"},
 		"companion":    {"default_secret", "presence_ttl_seconds", "capture_mode", "selected_packet_ids", "payload_limit", "redact_packet_ids", "queue_capacity", "batch_size", "flush_ms", "movement_sample_rate", "metrics_interval_ticks", "reconnect_seconds", "presence_enabled", "presence_include_address", "transfer_enabled", "drop_receive_ids", "drop_send_ids"},
 		"transfer":     {"enabled", "public_host", "port_start", "port_end", "ticket_ttl_seconds", "require_source_ip"},
 		"firewall":     {"enabled", "adaptive", "risk_decay_per_minute", "risk_warning_threshold", "risk_ban_threshold", "progressive_ban_seconds", "max_datagram_size", "max_packets_per_second_per_ip", "global_packets_per_second", "max_handshakes_per_minute", "max_sessions", "max_sessions_per_ip"},
@@ -759,6 +760,7 @@ live_config_reload_ms=1000
 		"schemaVersion":         1,
 		"enabled":               document.getBool("session_core", "enabled", true),
 		"version":               document.get("session_core", "version", "1.26.30"),
+		"advertisedVersion":     document.get("session_core", "advertised_version", "1.26.33"),
 		"listenHost":            document.get("session_core", "listen_host", "0.0.0.0"),
 		"publicHost":            document.get("edge", "public_host", "127.0.0.1"),
 		"dashboardUrl":          "http://127.0.0.1:" + strconv.Itoa(document.getInt("dashboard", "port", 25571, 1, 65535)),
@@ -767,6 +769,7 @@ live_config_reload_ms=1000
 		"subMotd":               document.get("session_core", "sub_motd", "Protected Bedrock Network"),
 		"requireTransferTicket": document.getBool("session_core", "require_transfer_ticket", false),
 		"profilesFolder":        document.get("session_core", "profiles_folder", filepath.Join(runtimeDir, "session-core-profiles")),
+		"stateFile":             filepath.Join(runtimeDir, "session-core-state.json"),
 		"primaryBackend":        topology.PrimaryBackend,
 		"backends":              fullProxyBackends,
 	}

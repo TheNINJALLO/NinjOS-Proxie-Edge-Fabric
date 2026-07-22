@@ -1,15 +1,25 @@
 # Changelog
 
-## 7.3.2 - 2026-07-21
+## 7.3.3 - 2026-07-21
 
-### Minecraft Bedrock 1.26.30 Full Proxy compatibility
+### Bedrock 1.26.33 Full Proxy and health reporting
 
-- Updated the Session Core from `bedrock-protocol` `3.56.1` to `3.57.0`.
-- Added the current Bedrock `1.26.30` protocol implementation to Full Proxy mode.
+- Added Microsoft OIDC login verification for Bedrock `1.26.33` while retaining
+  its wire-compatible `1.26.30` packet schema (protocol `1001`).
+- Corrected the `voxel_shapes` schema used by current Endstone servers and made
+  the native RakNet prebuild portable across supported Linux kernel versions.
+- Added a reproducible compatibility step so clean CI, npm, and release builds
+  contain the same fixes that were validated on the live Zoo route.
+- Added Session Core health publication and merged Full Proxy listeners into the
+  dashboard's backend registry, health API, metrics, and automatic actions.
+- Fixed recovered companions being shown as degraded because of historical,
+  cumulative upload failures.
 - Separated the transparent gateway's live topology from Full Proxy routes so both
   runtimes cannot bind the same public UDP port.
 - Rebuilt the pinned Session Core dependency lock and release runtime assets.
-- Updated installers, packages, documentation, and release automation for `v7.3.2`.
+- Fixed container publishing so it builds current binaries and the versioned
+  Vanilla Bridge package before constructing the image.
+- Updated installers, packages, documentation, and release automation for `v7.3.3`.
 
 ## 7.3.1 - 2026-07-19
 

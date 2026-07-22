@@ -4,7 +4,7 @@ The Ninj-OS Vanilla Bridge runs as a behavior pack on Mojang Bedrock Dedicated S
 
 ## Install
 
-1. Extract `NinjOS-Vanilla-Bridge-v7.3.2.mcpack` or copy it into the BDS `behavior_packs` directory.
+1. Extract `NinjOS-Vanilla-Bridge-v7.3.3.mcpack` or copy it into the BDS `behavior_packs` directory.
 2. Edit `scripts/config.js` inside the installed pack.
 3. Set the exact dashboard backend ID, private dashboard URL, and unique backend secret.
 4. Add the pack UUID/version to the world's `world_behavior_packs.json`.

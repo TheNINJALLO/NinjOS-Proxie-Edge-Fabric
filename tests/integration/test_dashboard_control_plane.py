@@ -133,10 +133,22 @@ def main() -> None:
             "firewall": {"topRisk": [], "activeBans": 0},
             "backends": [
                 {"name": "kingdom", "healthy": True, "enabled": True, "host": "127.0.0.1", "port": 25565},
-                {"name": "zoo", "healthy": True, "enabled": True, "host": "127.0.0.1", "port": 19431},
             ],
         }
         (runtime / "gateway-state.json").write_text(json.dumps(gateway_state))
+        (runtime / "session-core-state.json").write_text(json.dumps({
+            "timestamp": int(time.time() * 1000),
+            "engine": "session-core",
+            "backends": [{
+                "name": "zoo", "healthy": True, "enabled": True,
+                "connectionMode": "full_proxy", "activeSessions": 0,
+            }],
+        }))
+        (runtime / "companion-state-zoo.json").write_text(json.dumps({
+            "timestamp": int(time.time() * 1000),
+            "serverId": "zoo",
+            "metrics": {"uploadFailures": 9, "queueDepth": 0},
+        }))
         (runtime / "sessions.json").write_text("[]")
         (runtime / "health-actions.properties").write_text("enabled=false\n")
 
@@ -178,8 +190,12 @@ def main() -> None:
             session = login["token"]
 
             _, state = request("/api/state", token=session)
-            assert state["version"] == "7.3.2"
+            assert state["version"] == "7.3.3"
             assert state["management"]["sqliteLedger"] is True
+            zoo_health = next(item for item in state["gateway"]["backends"] if item["name"] == "zoo")
+            assert zoo_health["healthy"] is True
+            zoo_companion_state = next(item for item in state["companions"] if item["serverId"] == "zoo")
+            assert zoo_companion_state["health"] == "healthy"
 
             _, managed_settings = request("/api/settings", token=session)
             assert any(item["id"] == "companion.capture_mode" for item in managed_settings["settings"])
@@ -346,7 +362,7 @@ def main() -> None:
                 audit_count = database.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
                 assert audit_count >= 1
 
-            print("dashboard-v7.3.2: PASS")
+            print("dashboard-v7.3.3: PASS")
         finally:
             process.terminate()
             try:
