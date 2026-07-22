@@ -186,7 +186,7 @@ jobs:
 
           cat > "$package_root/BUILD-INFO.txt" <<EOF
           Plugin: Ninj-OS Proxie Endstone Companion
-          Plugin version: 3.6.0
+          Plugin version: 3.6.1
           Endstone version: ${ENDSTONE_VERSION}
           Platform: Linux x86_64
           Git commit: ${GITHUB_SHA}

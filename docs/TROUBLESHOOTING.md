@@ -44,7 +44,7 @@ dashboard owner password or browser session token.
 Transport protection does not depend on the companion, so the gateway may remain
 healthy while gameplay metrics are unavailable.
 
-1. Confirm the backend uses companion v3.6.0.
+1. Confirm the backend uses companion v3.6.1.
 2. Run `/npm status` in the Endstone console.
 3. Compare its backend ID and secret fingerprint with the selected backend in the
    dashboard.

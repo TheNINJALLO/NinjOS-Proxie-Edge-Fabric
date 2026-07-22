@@ -1,5 +1,17 @@
 # Changelog
 
+## 7.3.7 - 2026-07-22
+
+### Reliable Endstone identity and permission restoration
+
+- Retried the transient Full Proxy join race where Endstone became ready before
+  Session Core's signed identity grant reached the dashboard.
+- Preserved operator status already configured on the Endstone backend when a
+  network member grant does not request an elevation.
+- Continued to apply network-role elevation, permission attachments, permission
+  recalculation, and command refresh after a verified identity handoff.
+- Added release regression checks for grant retry and non-destructive OP handling.
+
 ## 7.3.6 - 2026-07-22
 
 ### Data-plane restart and port ownership

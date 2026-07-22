@@ -764,8 +764,8 @@ public:
             *this, [this] { capture_metrics(); }, 20,
             static_cast<std::uint64_t>(std::max(1, config_.metrics_interval_ticks)));
 
-        enqueue_event("companion.enabled", "Ninj-OS Edge Fabric companion v3.6.0 enabled", "info");
-        getLogger().info("Ninj-OS Edge Fabric Companion v3.6.0 enabled. Dashboard {}:{} serverId={} secretFingerprint={}",
+        enqueue_event("companion.enabled", "Ninj-OS Edge Fabric companion v3.6.1 enabled", "info");
+        getLogger().info("Ninj-OS Edge Fabric Companion v3.6.1 enabled. Dashboard {}:{} serverId={} secretFingerprint={}",
                          config_.dashboard_host, config_.dashboard_port, config_.server_id,
                          secret_fingerprint(config_.shared_secret));
         if (config_.shared_secret == "CHANGE_ME_NOW") {
@@ -778,7 +778,7 @@ public:
         running_.store(false);
         queue_cv_.notify_all();
         if (worker_.joinable()) worker_.join();
-        getLogger().info("Ninj-OS Edge Fabric Companion v3.6.0 disabled.");
+        getLogger().info("Ninj-OS Edge Fabric Companion v3.6.1 disabled.");
     }
 
     bool onCommand(endstone::CommandSender &sender,
@@ -812,7 +812,7 @@ public:
                 const auto config = config_snapshot();
                 const auto last_ok = last_upload_ok_.load();
                 const auto last_attempt = last_upload_attempt_.load();
-                sender.sendMessage("Ninj-OS Companion v3.6.0: target={}:{} server={} secretFingerprint={}",
+                sender.sendMessage("Ninj-OS Companion v3.6.1: target={}:{} server={} secretFingerprint={}",
                                    config.dashboard_host, config.dashboard_port, config.server_id,
                                    secret_fingerprint(config.shared_secret));
                 sender.sendMessage("players={} queue={} dropped={} uploaded={} failures={} capture={} presence={} transfers={}",
@@ -889,7 +889,17 @@ public:
         getServer().getScheduler().runTaskAsync(*this, [this, config, player_name] {
             HttpClient::IdentityResponse identity;
             std::string error;
-            const bool accepted = HttpClient::consume_identity(config, player_name, identity, error);
+            bool accepted = false;
+            // Session Core and the upstream Endstone login complete on separate
+            // event loops. Endstone can emit PlayerJoinEvent a few milliseconds
+            // before Session Core's one-use grant reaches the dashboard. Retry
+            // only that transient "grant not ready" response; authentication and
+            // configuration failures must still fail immediately.
+            for (int attempt = 0; attempt < 30; ++attempt) {
+                accepted = HttpClient::consume_identity(config, player_name, identity, error);
+                if (accepted || error.find("No valid proxy identity grant") == std::string::npos) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
             getServer().getScheduler().runTask(*this, [this, config, player_name, identity, error, accepted] {
                 auto *player = getServer().getPlayer(player_name);
                 if (player == nullptr) return;
@@ -900,7 +910,10 @@ public:
                     }
                     return;
                 }
-                player->setOp(identity.operator_status);
+                // A network grant may elevate a player, but a default/member
+                // grant must not erase operator status already configured on the
+                // Endstone backend.
+                if (identity.operator_status) player->setOp(true);
                 for (const auto &permission : identity.permissions) {
                     if (!permission.empty() && permission != "*") player->addAttachment(*this, permission, true);
                 }
@@ -909,7 +922,7 @@ public:
                 getServer().getScheduler().runTaskLater(*this, [this, player_name, operator_status = identity.operator_status] {
                     auto *current = getServer().getPlayer(player_name);
                     if (current == nullptr) return;
-                    current->setOp(operator_status);
+                    if (operator_status) current->setOp(true);
                     current->recalculatePermissions();
                     current->updateCommands();
                 }, 2);
@@ -1044,7 +1057,7 @@ private:
 
         std::ostringstream json;
         json << "{\"type\":\"metrics\",\"timestamp\":" << epoch_ms()
-             << ",\"companionVersion\":\"3.6.0\""
+             << ",\"companionVersion\":\"3.6.1\""
              << ",\"capabilitySchema\":1"
              << ",\"serverId\":\"" << json_escape(config.server_id) << "\""
              << ",\"onlineMode\":" << (server.getOnlineMode() ? "true" : "false")
@@ -1247,7 +1260,7 @@ private:
     Clock::time_point last_metrics_at_{Clock::now()};
 };
 
-ENDSTONE_PLUGIN("ninjos_proxie_companion", "3.6.0", NinjOSProxieCompanion) {
+ENDSTONE_PLUGIN("ninjos_proxie_companion", "3.6.1", NinjOSProxieCompanion) {
     prefix = "Ninj-OS Proxie";
     description = "Identity, permission, packet, and performance bridge for Ninj-OS transparent and full-proxy modes";
     authors = {"Ninj-OS"};
