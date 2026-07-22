@@ -51,6 +51,7 @@ type secretDescriptor struct {
 	CanGenerate                  bool   `json:"canGenerate"`
 	CanInherit                   bool   `json:"canInherit"`
 	RestartRequired              bool   `json:"restartRequired"`
+	MinimumLength                int    `json:"minimumLength"`
 }
 
 type secretLocation struct {
@@ -67,6 +68,8 @@ type secretLocation struct {
 
 var environmentVariablePattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1,127}$`)
 
+const minimumSecretLength = 12
+
 func intPointer(value int) *int { return &value }
 
 func managedSettingSchema() []settingDescriptor {
@@ -78,6 +81,12 @@ func managedSettingSchema() []settingDescriptor {
 		{ID: "dashboard.port", Section: "dashboard", Key: "port", Label: "Dashboard TCP port", Description: "TCP listener for the dashboard and companion API.", Type: "number", Minimum: intPointer(1), Maximum: intPointer(65535), Restart: true},
 		{ID: "dashboard.public_host", Section: "dashboard", Key: "public_host", Label: "Dashboard public host", Description: "Address companions use to reach the dashboard API.", Type: "text", Restart: true},
 		{ID: "dashboard.session_minutes", Section: "dashboard", Key: "session_minutes", Label: "Dashboard session minutes", Description: "Lifetime of browser session tokens.", Type: "number", Minimum: intPointer(15), Maximum: intPointer(10080), Restart: true},
+		{ID: "session_core.protocol_capture_enabled", Section: "session_core", Key: "protocol_capture_enabled", Label: "Protocol inspection enabled", Description: "Record bounded Full Proxy protocol observations.", Type: "boolean", Restart: true},
+		{ID: "session_core.protocol_capture_mode", Section: "session_core", Key: "protocol_capture_mode", Label: "Protocol inspection tier", Description: "Metadata only, redacted decoded values, selected wire bytes, or all safe tiers.", Type: "select", Options: []string{"metadata", "decoded", "wire", "full"}, Restart: true},
+		{ID: "session_core.protocol_capture_packet_ids", Section: "session_core", Key: "protocol_capture_packet_ids", Label: "Wire and round-trip packet IDs", Description: "Comma-separated application packet IDs allowed for wire capture and round-trip checks.", Type: "text", Restart: true},
+		{ID: "session_core.protocol_capture_max_packet_bytes", Section: "session_core", Key: "protocol_capture_max_packet_bytes", Label: "Maximum captured bytes per packet", Description: "Hard limit for each selected wire or decode-failure sample.", Type: "number", Minimum: intPointer(64), Maximum: intPointer(1048576), Restart: true},
+		{ID: "session_core.protocol_capture_decode_failures", Section: "session_core", Key: "protocol_capture_decode_failures", Label: "Capture decode failures", Description: "Record bounded failure details before an undecodable packet is discarded.", Type: "boolean", Restart: true},
+		{ID: "session_core.protocol_observation_max_bytes", Section: "session_core", Key: "protocol_observation_max_bytes", Label: "Protocol observation log size", Description: "Maximum bytes per backend observation log before rotation.", Type: "number", Minimum: intPointer(65536), Maximum: intPointer(1073741824), Restart: true},
 		{ID: "companion.presence_ttl_seconds", Section: "companion", Key: "presence_ttl_seconds", Label: "Presence TTL seconds", Description: "How long a companion/player heartbeat remains current.", Type: "number", Minimum: intPointer(30), Maximum: intPointer(3600), Restart: true},
 		{ID: "companion.capture_mode", Section: "companion", Key: "capture_mode", Label: "Companion capture mode", Description: "Default gameplay packet capture mode for downloaded configs.", Type: "select", Options: []string{"off", "metadata", "selected", "all"}, Restart: false},
 		{ID: "companion.selected_packet_ids", Section: "companion", Key: "selected_packet_ids", Label: "Selected packet IDs", Description: "Comma-separated packet IDs captured in selected mode.", Type: "text", Restart: false},
@@ -235,13 +244,14 @@ func (d *dashboard) handleManagedSettings(w http.ResponseWriter, r *http.Request
 
 func secretLocationForID(document *iniDocument, id string) (secretLocation, error) {
 	static := map[string]secretLocation{
-		"dashboard.operator_token": {Section: "dashboard", Key: "operator_token", Component: "dashboard", Label: "Operator access token", CanGenerate: true, DefaultEnv: "DASHBOARD_OPERATOR_TOKEN", Kind: "token"},
-		"dashboard.viewer_token":   {Section: "dashboard", Key: "viewer_token", Component: "dashboard", Label: "Viewer access token", CanGenerate: true, DefaultEnv: "DASHBOARD_READONLY_TOKEN", Kind: "token"},
-		"dashboard.metrics_token":  {Section: "dashboard", Key: "metrics_token", Component: "dashboard", Label: "Metrics access token", CanGenerate: true, DefaultEnv: "METRICS_TOKEN", Kind: "token"},
-		"dashboard.totp_secret":    {Section: "dashboard", Key: "totp_secret", Component: "dashboard", Label: "Owner TOTP secret", CanGenerate: true, DefaultEnv: "DASHBOARD_TOTP_SECRET", Kind: "totp"},
-		"companion.default_secret": {Section: "companion", Key: "default_secret", Component: "companion", Label: "Default companion shared secret (not dashboard login)", CanGenerate: true, DefaultEnv: "COMPANION_SHARED_SECRET", Kind: "secret", Required: true},
-		"discord.webhook_url":      {Section: "discord", Key: "webhook_url", Component: "discord", Label: "Discord webhook URL", DefaultEnv: "DISCORD_WEBHOOK_URL", Kind: "url"},
-		"discord.bot_token":        {Section: "discord", Key: "bot_token", Component: "discord", Label: "Discord bot token", DefaultEnv: "DISCORD_BOT_TOKEN", Kind: "secret"},
+		"dashboard.operator_token":    {Section: "dashboard", Key: "operator_token", Component: "dashboard", Label: "Operator access token", CanGenerate: true, DefaultEnv: "DASHBOARD_OPERATOR_TOKEN", Kind: "token"},
+		"dashboard.viewer_token":      {Section: "dashboard", Key: "viewer_token", Component: "dashboard", Label: "Viewer access token", CanGenerate: true, DefaultEnv: "DASHBOARD_READONLY_TOKEN", Kind: "token"},
+		"dashboard.metrics_token":     {Section: "dashboard", Key: "metrics_token", Component: "dashboard", Label: "Metrics access token", CanGenerate: true, DefaultEnv: "METRICS_TOKEN", Kind: "token"},
+		"dashboard.totp_secret":       {Section: "dashboard", Key: "totp_secret", Component: "dashboard", Label: "Owner TOTP secret", CanGenerate: true, DefaultEnv: "DASHBOARD_TOTP_SECRET", Kind: "totp"},
+		"session_core.internal_token": {Section: "session_core", Key: "internal_token", Component: "session core", Label: "Session Core internal token", CanGenerate: true, DefaultEnv: "SESSION_CORE_TOKEN", Kind: "token"},
+		"companion.default_secret":    {Section: "companion", Key: "default_secret", Component: "companion", Label: "Default companion shared secret (not dashboard login)", CanGenerate: true, DefaultEnv: "COMPANION_SHARED_SECRET", Kind: "secret", Required: true},
+		"discord.webhook_url":         {Section: "discord", Key: "webhook_url", Component: "discord", Label: "Discord webhook URL", DefaultEnv: "DISCORD_WEBHOOK_URL", Kind: "url"},
+		"discord.bot_token":           {Section: "discord", Key: "bot_token", Component: "discord", Label: "Discord bot token", DefaultEnv: "DISCORD_BOT_TOKEN", Kind: "secret"},
 	}
 	if location, ok := static[id]; ok {
 		return location, nil
@@ -310,6 +320,7 @@ func secretDescriptorFor(document *iniDocument, id string, location secretLocati
 		Reference: displayReference, EnvironmentVariable: variable, SuggestedEnvironmentVariable: location.DefaultEnv, Configured: resolved != "",
 		Fingerprint: secretFingerprint(resolved), CanGenerate: location.CanGenerate,
 		CanInherit: location.CanInherit, RestartRequired: true,
+		MinimumLength: minimumSecretLength,
 	}
 }
 
@@ -317,6 +328,7 @@ func (d *dashboard) secretDescriptors(document *iniDocument) []secretDescriptor 
 	ids := []string{
 		"dashboard.operator_token", "dashboard.viewer_token",
 		"dashboard.metrics_token", "dashboard.totp_secret", "companion.default_secret",
+		"session_core.internal_token",
 		"discord.webhook_url", "discord.bot_token",
 	}
 	topology, _ := topologyFromUnified(document)
@@ -349,6 +361,9 @@ func validateManagedSecret(location secretLocation, value string) error {
 		if value == "" {
 			return nil
 		}
+		if len(value) < minimumSecretLength {
+			return fmt.Errorf("Secret values must contain at least %d characters", minimumSecretLength)
+		}
 		if !strings.HasPrefix(value, "https://") && !strings.HasPrefix(value, "http://") {
 			return errors.New("Webhook URL must begin with https:// or http://")
 		}
@@ -359,13 +374,16 @@ func validateManagedSecret(location secretLocation, value string) error {
 			return nil
 		}
 		value = strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(value, " ", ""), "-", ""))
+		if len(value) < minimumSecretLength {
+			return fmt.Errorf("Secret values must contain at least %d characters", minimumSecretLength)
+		}
 		if _, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(value); err != nil {
 			return errors.New("TOTP secret must be valid Base32")
 		}
 		return nil
 	}
-	if value != "" && len(value) < 16 {
-		return errors.New("Tokens and shared secrets must contain at least 16 characters")
+	if value != "" && len(value) < minimumSecretLength {
+		return fmt.Errorf("Secret values must contain at least %d characters", minimumSecretLength)
 	}
 	return nil
 }
@@ -440,8 +458,13 @@ func (d *dashboard) handleManagedSecrets(w http.ResponseWriter, r *http.Request)
 				writeJSON(w, 400, map[string]string{"error": "Invalid environment variable name"})
 				return
 			}
-			if strings.TrimSpace(os.Getenv(variable)) == "" {
+			resolved := strings.TrimSpace(os.Getenv(variable))
+			if resolved == "" {
 				writeJSON(w, 400, map[string]string{"error": "Environment variable " + variable + " is empty in the running service. Set it in Pterodactyl Startup/systemd first, or use Dashboard-managed mode."})
+				return
+			}
+			if err := validateManagedSecret(location, resolved); err != nil {
+				writeJSON(w, 400, map[string]string{"error": "Environment variable " + variable + ": " + err.Error()})
 				return
 			}
 			document.section(location.Section)[location.Key] = "env:" + variable

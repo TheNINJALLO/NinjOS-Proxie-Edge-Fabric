@@ -1,6 +1,6 @@
 {
   "name": "@theninjallo/ninjos-proxie-session-core",
-  "version": "7.3.3",
+  "version": "7.3.4",
   "private": false,
   "description": "Protocol-aware Bedrock session layer for Ninj-OS Proxie Edge Fabric",
   "license": "AGPL-3.0-only",
@@ -9,6 +9,7 @@
   "files": [
     "src",
     "scripts",
+    "protocol-packs",
     "README.md"
   ],
   "repository": {
@@ -26,8 +27,8 @@
     "postinstall": "node scripts/apply-runtime-compatibility.js",
     "patch-runtime": "node scripts/apply-runtime-compatibility.js",
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/ninjos-relay.js && node --check src/hmac.js && node --check scripts/apply-runtime-compatibility.js",
-    "test": "node test/config.test.js"
+    "check": "node --check src/index.js && node --check src/ninjos-relay.js && node --check src/hmac.js && node --check src/protocol-weave.js && node --check scripts/apply-runtime-compatibility.js",
+    "test": "node test/config.test.js && node test/protocol-weave.test.js"
   },
   "dependencies": {
     "bedrock-protocol": "3.57.0"

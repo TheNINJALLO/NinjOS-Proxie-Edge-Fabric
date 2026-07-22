@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="7.3.3"
+VERSION="7.3.4"
 COMPANION_VERSION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["companionVersion"])' "${ROOT}/companion/release-metadata.json")"
 COMPANION_ARCHIVE="NinjOS-Endstone-Companion-v${COMPANION_VERSION}-GitHub-Clean.zip"
 VANILLA_BRIDGE_ARCHIVE="NinjOS-Vanilla-Bridge-v${VERSION}.mcpack"
@@ -53,7 +53,7 @@ rsync -a \
   --exclude='/node_modules/minecraft-data/minecraft-data/data/pc/*' \
   "${ROOT}/session-core/" "${STAGE}/runtime/session-core/"
 
-# Ship the reviewed native RakNet prebuild and the Bedrock protocol data used by v7.3.3.
+# Ship the reviewed native RakNet prebuild and the Bedrock protocol data used by v7.3.4.
 SESSION_STAGE="${STAGE}/runtime/session-core"
 find "${SESSION_STAGE}/node_modules" -type d \
   \( -name test -o -name tests -o -name docs -o -name doc -o -name examples -o -name example \
@@ -143,28 +143,20 @@ COMPONENTS
 
 python3 - "${ROOT}" "${OUT}" "${VERSION}" <<'ZIPBUILD'
 from pathlib import Path
-import os, sys, zipfile
+import subprocess, sys, zipfile
 root = Path(sys.argv[1]); out = Path(sys.argv[2]); version = sys.argv[3]
-excluded_roots = {'build', 'dist', '.git', 'node-runtime'}
-excluded_parts = {'build', '.git', '__pycache__', 'node_modules', '.cache'}
 excluded_names = {f'NinjOS-Proxie-Edge-Fabric-v{version}-Runtime.tar.gz'}
 
 def repository_files():
-    files = []
-    for current, dirs, names in os.walk(root):
-        current_path = Path(current)
-        rel_dir = current_path.relative_to(root)
-        if rel_dir.parts and rel_dir.parts[0] in excluded_roots:
-            dirs[:] = []
+    tracked = subprocess.check_output(
+        ['git', '-C', str(root), 'ls-files', '-z'],
+    ).decode('utf-8').split('\0')
+    for relative in sorted(filter(None, tracked)):
+        rel = Path(relative)
+        path = root / rel
+        if not path.is_file() or path.name in excluded_names:
             continue
-        dirs[:] = sorted(d for d in dirs if d not in excluded_parts and not (not rel_dir.parts and d in excluded_roots))
-        for name in sorted(names):
-            path = current_path / name
-            rel = path.relative_to(root)
-            if name in excluded_names or path.suffix in {'.pyc', '.pyo'}:
-                continue
-            files.append((path, rel))
-    yield from sorted(files, key=lambda item: item[1].as_posix())
+        yield path, rel
 
 source_zip = out / f'NinjOS-Proxie-Edge-Fabric-v{version}-Source.zip'
 github_zip = out / f'NinjOS-Proxie-Edge-Fabric-v{version}-GitHub-Repository.zip'

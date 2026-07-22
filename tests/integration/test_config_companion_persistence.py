@@ -149,6 +149,29 @@ def main() -> None:
             assert status == 400, result
             assert "is empty" in result.get("error", ""), result
 
+            status, result = request(
+                "/api/secrets",
+                "PUT",
+                {
+                    "id": "backend.kingdom.companion_secret",
+                    "mode": "dashboard",
+                    "value": "eleven-char",
+                },
+            )
+            assert status == 400, result
+            assert "at least 12 characters" in result.get("error", ""), result
+
+            status, result = request(
+                "/api/secrets",
+                "PUT",
+                {
+                    "id": "backend.kingdom.companion_secret",
+                    "mode": "dashboard",
+                    "value": "123456789012",
+                },
+            )
+            assert status == 202, result
+
             # Dashboard-managed save must survive a read-back and expose a matching revision.
             status, saved = request(
                 "/api/secrets",
@@ -171,6 +194,18 @@ def main() -> None:
 
             save_status = json.loads((runtime / "config-save-status.json").read_text())
             assert save_status["revision"] == revision, save_status
+
+            # The advanced editor cannot replace a Vault-managed credential.
+            tampered_content = unified["content"].replace(
+                "companion_secret = [REDACTED]",
+                "companion_secret = should-not-replace-vault-secret",
+            )
+            status, result = request(
+                "/api/unified-config", "PUT", {"content": tampered_content}
+            )
+            assert status == 202, result
+            assert COMPANION_SECRET in config.read_text()
+            assert "should-not-replace-vault-secret" not in config.read_text()
 
             # Generated properties and manager fingerprint must use the same effective secret.
             raw_request = urllib.request.Request(

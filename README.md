@@ -9,7 +9,7 @@
 [![Packages](https://img.shields.io/badge/GitHub-Packages-8250df?style=for-the-badge&logo=github&logoColor=white)](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/packages)
 [![License](https://img.shields.io/github/license/TheNINJALLO/NinjOS-Proxie-Edge-Fabric?style=for-the-badge&color=orange)](LICENSE)
 
-[![Edge Fabric](https://img.shields.io/badge/Edge_Fabric-7.3.3-111827?style=flat-square)](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/tag/v7.3.3)
+[![Edge Fabric](https://img.shields.io/badge/Edge_Fabric-7.3.4-111827?style=flat-square)](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/tag/v7.3.4)
 [![Endstone Companion](https://img.shields.io/badge/Companion-3.6.0-8b5cf6?style=flat-square)](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Endstone-Companion)
 [![Endstone](https://img.shields.io/badge/Endstone_Target-0.11.6-22c55e?style=flat-square)](companion/docs/COMPATIBILITY.md)
 [![Minecraft Bedrock](https://img.shields.io/badge/Vanilla_Bridge-1.26.30+-62b47a?style=flat-square&logo=minecraft&logoColor=white)](docs/VANILLA_BRIDGE_INSTALL.md)
@@ -23,7 +23,7 @@
 [![PowerShell](https://img.shields.io/badge/PowerShell-Windows-5391fe?style=flat-square&logo=powershell&logoColor=white)](install-windows.ps1)
 [![Shell](https://img.shields.io/badge/Shell-Linux-4eaa25?style=flat-square&logo=gnubash&logoColor=white)](install-standalone.sh)
 
-[**Get started**](#get-started) · [**Read the Wiki**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki) · [**Download v7.3.3**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/tag/v7.3.3) · [**View Packages**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/packages) · [**Report an issue**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/issues)
+[**Get started**](#get-started) · [**Read the Wiki**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki) · [**Download v7.3.4**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/tag/v7.3.4) · [**View Packages**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/packages) · [**Report an issue**](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/issues)
 
 </div>
 
@@ -35,6 +35,13 @@ Ninj-OS Proxie Edge Fabric is a universal Minecraft Bedrock network proxy, prote
 
 It combines a native UDP edge, a protocol-aware Bedrock session core, a browser-based control plane, persistent SQLite state, backend health and policy automation, and optional Endstone or vanilla integrations. Operators can manage public listeners, private backends, authentication modes, transfers, roles, secrets, health actions, logs, and performance from one fabric.
 
+Full Proxy also includes [Protocol Weave](docs/PROTOCOL_WEAVE.md), a reviewed,
+data-driven protocol-pack and translation layer for responding to Bedrock
+hotfixes while the pinned upstream codec catches up. Its tiered inspector can
+compare metadata, redacted decoded values, selected post-decryption wire bytes,
+decode failures, and decode/re-encode results without exposing authentication
+packets.
+
 > New operator? Follow the [Quick Start](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Quick-Start), then use the complete [Installation Index](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Installation-Index).
 
 ## Why use it?
@@ -44,6 +51,8 @@ It combines a native UDP edge, a protocol-aware Bedrock session core, a browser-
 - Route players across Endstone and vanilla backends with per-backend policy.
 - Preserve verified identity, XUID-based roles, operator state, and command permissions.
 - Operate from a role-aware web dashboard where the owner can maintain individual admin, operator, and viewer accounts alongside TOTP, secrets, health actions, metrics, audit history, transfers, and redacted support bundles.
+- Manage service tokens, environment bindings, TOTP, Discord credentials, and per-backend companion secrets from one validated Secret Vault.
+- Inspect Full Proxy packets through structured decoded, translated, wire, failure, and round-trip views with bounded on-demand detail loading.
 - Deploy through Pterodactyl, native Linux/systemd, Docker, or Windows through WSL2.
 - Integrate Endstone with a compiled companion plugin or Mojang BDS with a Script API behavior pack and optional host agent.
 - Install from a complete offline runtime or consume versioned GitHub container/npm packages.
@@ -103,13 +112,13 @@ One fabric can run both modes at the same time. See [Connection Modes](https://g
 
 | Component | Version or target | Platform | Important boundary |
 |---|---|---|---|
-| Edge Fabric | `7.3.3` | Linux x86_64 | Windows hosts run the Linux runtime through WSL2; no native Windows edge binary is claimed. |
+| Edge Fabric | `7.3.4` | Linux x86_64 | Windows hosts run the Linux runtime through WSL2; no native Windows edge binary is claimed. |
 | Endstone Companion | `3.6.0` | Linux x86_64 `.so` | Default build target is exact Endstone `0.11.6`. Native API/ABI compatibility must not be assumed across Endstone patch versions. |
 | Companion toolchain | C++20, LLVM/Clang 18, libc++ | Ubuntu 22.04 build target | Intended for glibc 2.35 or older-compatible Linux environments. |
-| Vanilla Bridge | `7.3.3` | Mojang Bedrock Dedicated Server | Declares minimum engine `1.26.30`, `@minecraft/server` `2.8.0`, and `@minecraft/server-net` `1.0.0-beta.1.26.30-preview.20`. |
-| Session Core | `7.3.3` | Node.js 22+ | Pins `bedrock-protocol` `3.57.0`; use the runtime’s pinned dependency set. |
-| Dashboard | `7.3.3` | Linux x86_64 | Go 1.23+ is required when building from source. |
-| Vanilla Host Agent | `7.3.3` | Linux x86_64 and Windows x86_64 | Used with the Vanilla Bridge when host metrics and `permissions.json` synchronization are needed. |
+| Vanilla Bridge | `7.3.4` | Mojang Bedrock Dedicated Server | Declares minimum engine `1.26.30`, `@minecraft/server` `2.8.0`, and `@minecraft/server-net` `1.0.0-beta.1.26.30-preview.20`. |
+| Session Core | `7.3.4` | Node.js 22+ | Pins `bedrock-protocol` `3.57.0`; use the runtime’s pinned dependency set. |
+| Dashboard | `7.3.4` | Linux x86_64 | Go 1.23+ is required when building from source. |
+| Vanilla Host Agent | `7.3.4` | Linux x86_64 and Windows x86_64 | Used with the Vanilla Bridge when host metrics and `permissions.json` synchronization are needed. |
 | Database | SQLite with WAL | Runtime-local persistent storage | Keep runtime databases private and back them up before upgrades. |
 
 The runtime carries pinned Bedrock protocol data used by this release. A packaged protocol dataset is not a promise that every historical or future BDS build is interchangeable. Validate the exact client, BDS, Endstone, Script API, operating system, and architecture combination in staging. Read the [Companion Compatibility Policy](companion/docs/COMPATIBILITY.md).
@@ -120,11 +129,11 @@ The runtime carries pinned Bedrock protocol data used by this release. A package
 
 | Environment | Primary guide | Download |
 |---|---|---|
-| Pterodactyl | [Pterodactyl installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Pterodactyl-Installation) | [Pterodactyl egg](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.3/egg-ninjos-proxie-edge-fabric-v7.3.3.json) |
-| Linux VPS/dedicated host | [Standalone Linux installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Standalone-Linux-Installation) | [Linux installer](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.3/install-standalone.sh) |
+| Pterodactyl | [Pterodactyl installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Pterodactyl-Installation) | [Pterodactyl egg](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.4/egg-ninjos-proxie-edge-fabric-v7.3.4.json) |
+| Linux VPS/dedicated host | [Standalone Linux installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Standalone-Linux-Installation) | [Linux installer](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.4/install-standalone.sh) |
 | Docker on Linux | [Docker installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Docker-Installation) | [Container package](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/pkgs/container/ninjos-proxie-edge-fabric) |
-| Windows 11/Windows Server | [Windows/WSL2 installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Windows-Installation) | [Windows installer](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.3/install-windows.ps1) |
-| Manual/offline deployment | [Installation index](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Installation-Index) | [Complete runtime](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.3/NinjOS-Proxie-Edge-Fabric-v7.3.3-Runtime.tar.gz) |
+| Windows 11/Windows Server | [Windows/WSL2 installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Windows-Installation) | [Windows installer](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.4/install-windows.ps1) |
+| Manual/offline deployment | [Installation index](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Installation-Index) | [Complete runtime](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.4/NinjOS-Proxie-Edge-Fabric-v7.3.4-Runtime.tar.gz) |
 
 ### 2. Claim the dashboard
 
@@ -144,8 +153,8 @@ For every backend, choose its connection mode and adapter, assign the public lis
 
 | Backend | Integration | Guide | Download |
 |---|---|---|---|
-| Endstone | Endstone Companion | [Complete companion setup](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Endstone-Companion) | [Compiled Linux package](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.3/NinjOS-Endstone-Companion-v3.6.0-Endstone-0.11.6-Linux-x86_64.zip) |
-| Mojang BDS | Vanilla Bridge | [Vanilla Bridge installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Vanilla-Bridge) | [Behavior pack](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.3/NinjOS-Vanilla-Bridge-v7.3.3.mcpack) |
+| Endstone | Endstone Companion | [Complete companion setup](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Endstone-Companion) | [Compiled Linux package](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.4/NinjOS-Endstone-Companion-v3.6.0-Endstone-0.11.6-Linux-x86_64.zip) |
+| Mojang BDS | Vanilla Bridge | [Vanilla Bridge installation](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Vanilla-Bridge) | [Behavior pack](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/releases/download/v7.3.4/NinjOS-Vanilla-Bridge-v7.3.4.mcpack) |
 | Mojang BDS + host telemetry | Vanilla Bridge + Host Agent | [Vanilla Host Agent](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Vanilla-Host-Agent) | Agent binaries are included in the runtime/source build outputs. |
 | Untouched online backend | Proxy Only + Transparent Auth | [Transparent Auth](https://github.com/TheNINJALLO/NinjOS-Proxie-Edge-Fabric/wiki/Transparent-Auth-Mode) | No backend plugin required. |
 
@@ -158,10 +167,10 @@ Verify listener reachability, backend isolation, Xbox authentication, XUID/opera
 ### Container image
 
 ```bash
-docker pull ghcr.io/theninjallo/ninjos-proxie-edge-fabric:7.3.3
+docker pull ghcr.io/theninjallo/ninjos-proxie-edge-fabric:7.3.4
 ```
 
-The moving `latest` tag is also published. Pin `7.3.3` in production for repeatable deployments.
+The moving `latest` tag is also published. Pin `7.3.4` in production for repeatable deployments.
 
 ### Session Core npm package
 
@@ -174,7 +183,7 @@ Add the GitHub Packages registry for the account scope:
 Then install the matching component version:
 
 ```bash
-npm install @theninjallo/ninjos-proxie-session-core@7.3.3
+npm install @theninjallo/ninjos-proxie-session-core@7.3.4
 ```
 
 Session Core is an internal fabric component; most operators should use the complete runtime or container rather than assembling it independently.
@@ -186,6 +195,7 @@ Session Core is an internal fabric component; most operators should use the comp
 | `gateway/` | Datagram edge, transparent shield, policy enforcement | C++20, Linux sockets, `epoll` |
 | `dashboard/` | Control plane, web server, accounts, backends, SQLite storage | Go 1.23+, HTML, CSS, JavaScript |
 | `session-core/` | Protocol-aware Full Proxy relay and signed session support | Node.js 22+, CommonJS, `bedrock-protocol` |
+| `session-core/protocol-packs/` | Reviewed Bedrock compatibility packs and declarative translators | JSON |
 | `companion/` | Endstone identity, permission, metrics, and event integration | C++20, Endstone API, LLVM 18 |
 | `bridges/vanilla-addon/` | Mojang BDS identity and live command-permission bridge | JavaScript, Bedrock Script API |
 | `vanilla-agent/` | Host metrics and `permissions.json` synchronization | Go, Linux and Windows |

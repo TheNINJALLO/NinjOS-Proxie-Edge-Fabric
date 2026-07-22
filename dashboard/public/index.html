@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Ninj-OS Edge Fabric v7.3.3</title>
+    <title>Ninj-OS Edge Fabric v7.3.4</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -11,7 +11,7 @@
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">N</div>
-          <div><strong>Ninj-OS</strong><span>EDGE FABRIC v7.3.3</span></div>
+          <div><strong>Ninj-OS</strong><span>EDGE FABRIC v7.3.4</span></div>
         </div>
         <nav id="nav">
           <button class="active" data-view="overview">Network Pulse</button>
@@ -278,8 +278,8 @@
               <div>
                 <h2>Rolling Packet Inspector</h2>
                 <p>
-                  Transport envelopes from the proxy and decrypted gameplay
-                  packets from Endstone.
+                  Transport envelopes, companion gameplay records, and tiered
+                  Full Proxy observations with safe decoded and wire views.
                 </p>
               </div>
               <div class="packet-actions">
@@ -294,6 +294,15 @@
                 <option value="all">All layers</option>
                 <option value="transport">Transport / RakNet</option>
                 <option value="gameplay">Gameplay / Endstone</option>
+                <option value="protocol">Protocol Weave / Full Proxy</option>
+              </select>
+              <select id="packetTier">
+                <option value="">All capture tiers</option>
+                <option value="metadata">Metadata</option>
+                <option value="decoded">Decoded</option>
+                <option value="wire">Wire sample</option>
+                <option value="round_trip">Round-trip checked</option>
+                <option value="decode_failure">Decode failures</option>
               </select>
               <select id="packetDirection">
                 <option value="">All directions</option>
@@ -301,6 +310,8 @@
                 <option value="gateway_to_client">Gateway → Client</option>
                 <option value="client_to_server">Client → Server</option>
                 <option value="server_to_client">Server → Client</option>
+                <option value="serverbound">Client → Full Proxy</option>
+                <option value="clientbound">Backend → Full Proxy</option>
               </select>
               <input id="packetPlayer" placeholder="Player, XUID, IP" />
               <input id="packetId" placeholder="Packet ID" />
@@ -705,10 +716,9 @@
                 <button id="reloadUnifiedConfig" class="ghost">Reload</button>
               </div>
               <div class="note">
-                Service keys can use populated Pterodactyl environment references or can
-                be stored securely through the Secret Vault. Empty environment references
-                are rejected. Companion shared secrets are separate from the dashboard
-                owner username, password, and browser session.
+                Credentials are read-only in this advanced editor. Use the Secret Vault
+                for every service key, token, webhook, TOTP secret, and backend companion
+                secret so validation and restarts follow one consistent path.
               </div>
             </article>
 
@@ -717,9 +727,10 @@
                 <div>
                   <h2>Secret Vault</h2>
                   <p>
-                    Set, generate, rotate, or switch service and companion keys.
-                    Values are never returned to the browser after saving. A companion
-                    secret is not a dashboard login credential.
+                    This is the single credential editor for the entire fabric. Set,
+                    generate, rotate, inherit, or bind service and companion credentials
+                    here. Every saved secret must contain at least 12 characters. Values
+                    are never returned to the browser after saving.
                   </p>
                 </div>
                 <span>mode 0600</span>
@@ -784,7 +795,7 @@
                   Generated runtime files should not be edited directly.
                 </p>
               </div>
-              <span>v7.3.3</span>
+              <span>v7.3.4</span>
             </div>
             <div class="detail-grid" id="configurationLayout"></div>
           </article>
@@ -860,7 +871,7 @@
                   credentials, or raw addresses.
                 </p>
               </div>
-              <span>v7.3.3</span>
+              <span>v7.3.4</span>
             </div>
             <div class="button-row">
               <button id="downloadSupportBundle">
@@ -874,10 +885,40 @@
 
     <dialog id="packetDialog">
       <div class="dialog-head">
-        <h2>Packet Details</h2>
+        <div>
+          <h2 id="packetDetailTitle">Packet Details</h2>
+          <p id="packetDetailSubtitle"></p>
+        </div>
         <button id="closePacketDialog" class="ghost">Close</button>
       </div>
-      <pre id="packetDetails"></pre>
+      <div id="packetDetailBadges" class="packet-detail-badges"></div>
+      <div id="packetDetailSummary" class="detail-grid packet-detail-summary"></div>
+      <div class="packet-detail-columns">
+        <section id="packetDecodedSection" class="packet-detail-section">
+          <h3>Decoded Fields</h3>
+          <pre id="packetDecoded"></pre>
+        </section>
+        <section id="packetTranslatedSection" class="packet-detail-section">
+          <h3>After Translation</h3>
+          <pre id="packetTranslated"></pre>
+        </section>
+      </div>
+      <section id="packetWireSection" class="packet-detail-section">
+        <div class="packet-section-head"><h3>Application Wire Bytes</h3><span id="packetWireSummary"></span></div>
+        <pre id="packetWire"></pre>
+      </section>
+      <section id="packetRoundTripSection" class="packet-detail-section">
+        <h3>Decode / Re-encode Check</h3>
+        <div id="packetRoundTrip" class="detail-grid"></div>
+      </section>
+      <section id="packetFailureSection" class="packet-detail-section">
+        <h3>Decode Failure</h3>
+        <pre id="packetFailure"></pre>
+      </section>
+      <details class="packet-raw-record">
+        <summary>Raw inspection record</summary>
+        <pre id="packetDetails"></pre>
+      </details>
     </dialog>
 
     <dialog id="backendDialog">
@@ -958,11 +999,11 @@
               required
               placeholder="redstone"
           /></label>
-          <label
-            >Companion secret Startup variable<input
-              id="backendSecretEnv"
-              placeholder="COMPANION_REDSTONE_SECRET"
-          /></label>
+          <div class="note">
+            Companion credentials are managed only in Configuration &amp; Security &rarr;
+            Secret Vault. Save the server first, then use its Secret Vault button to set,
+            generate, inherit, or bind the companion secret.
+          </div>
           <label class="checkbox-label"
             ><input id="backendEnabled" type="checkbox" checked />
             Enabled</label
@@ -1006,13 +1047,14 @@
             <input id="secretEnvironmentVariable" placeholder="COMPANION_SERVER_SECRET" />
           </label>
           <label id="secretValueLabel">New value
-            <input id="secretValue" type="password" autocomplete="new-password" placeholder="Enter a new value" />
+            <input id="secretValue" type="password" autocomplete="new-password" minlength="12" placeholder="At least 12 characters" />
           </label>
         </div>
         <div class="note">
           Existing values are never loaded into this form. Environment mode works only
           when that variable is populated in the running service. Companion keys must
-          match <code>shared_secret</code> in the backend companion.properties file and
+          All saved values require at least 12 characters. Companion values must match
+          <code>shared_secret</code> in the backend companion.properties file and
           are unrelated to the dashboard owner password or browser session.
         </div>
         <div class="button-row">

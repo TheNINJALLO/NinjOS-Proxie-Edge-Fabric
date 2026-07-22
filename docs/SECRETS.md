@@ -1,10 +1,19 @@
-# Secret Vault
+# Unified Secret Vault
+
+The Secret Vault is the only dashboard area that edits credentials. Backend
+topology, Managed Settings, and the advanced INI editor may show a redacted source
+or status, but they cannot replace a Vault-managed value. This prevents a routine
+server or configuration edit from silently rotating a companion key.
+
+Every non-empty secret must contain at least 12 characters. The same server-side
+rule applies to dashboard-managed values, populated environment references, and
+advanced configuration validation. Generated values remain longer and stronger
+than the minimum.
 
 ## Dashboard owner password
 
 The owner username and password are not Secret Vault entries. They are created in
-the first-run setup wizard and changed through **Configuration & Secrets → Owner
-Account**.
+the first-run setup wizard and changed through **Team & Access > Owner Account**.
 
 The password is stored only as a salted PBKDF2-HMAC-SHA256 verifier in:
 
@@ -31,6 +40,7 @@ The Secret Vault manages service credentials such as:
 ```text
 Operator, viewer, and metrics tokens
 Owner TOTP secret
+Session Core internal token
 Default companion shared secret
 Per-backend companion secrets
 Discord webhook URL
@@ -38,7 +48,7 @@ Discord bot token
 ```
 
 `DASHBOARD_TOKEN` may still appear on upgraded v7.0.x systems as a legacy owner
-credential. Fresh v7.3.3 installations do not use it for owner setup.
+credential. Fresh v7.3.4 installations do not use it for owner setup.
 
 ## Storage modes
 
@@ -74,7 +84,9 @@ Docker `.env`.
 
 The dashboard rejects environment mode when the selected variable is empty in the
 currently running service. Set the variable first, restart the service so it is
-present in the process environment, then select environment mode.
+present in the process environment, then select environment mode. Populated
+variables are subject to the same 12-character minimum and type-specific checks as
+dashboard-managed values.
 
 ### Inherit default
 

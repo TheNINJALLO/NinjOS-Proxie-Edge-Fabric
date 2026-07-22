@@ -151,6 +151,25 @@ def main() -> None:
         }))
         (runtime / "sessions.json").write_text("[]")
         (runtime / "health-actions.properties").write_text("enabled=false\n")
+        protocol_dir = runtime / "protocol-observations" / "1001"
+        protocol_dir.mkdir(parents=True)
+        (protocol_dir / "zoo.jsonl").write_text(json.dumps({
+            "timestamp": int(time.time() * 1000),
+            "recordId": "fixture-protocol-record",
+            "type": "protocol_packet",
+            "layer": "protocol",
+            "protocol": 1001,
+            "backend": "zoo",
+            "direction": "clientbound",
+            "packetId": 77,
+            "packetName": "fixture_packet",
+            "bytes": 3,
+            "action": "forward",
+            "captureTiers": ["metadata", "decoded", "wire", "round_trip"],
+            "decoded": {"safe": True},
+            "wire": {"encoding": "hex", "data": "4d0102", "capturedBytes": 3, "originalBytes": 3, "truncated": False},
+            "roundTrip": {"attempted": True, "exact": True, "mismatchOffset": -1},
+        }) + "\n")
 
         environment = os.environ.copy()
         environment.update(
@@ -189,8 +208,15 @@ def main() -> None:
             )
             session = login["token"]
 
+            _, protocol_packets = request(
+                "/api/packets?layer=protocol&tier=wire&packetId=77&details=1", token=session
+            )
+            assert protocol_packets["count"] == 1, protocol_packets
+            assert protocol_packets["records"][0]["decoded"]["safe"] is True
+            assert protocol_packets["tiers"]["round_trip"] == 1
+
             _, state = request("/api/state", token=session)
-            assert state["version"] == "7.3.3"
+            assert state["version"] == "7.3.4"
             assert state["management"]["sqliteLedger"] is True
             zoo_health = next(item for item in state["gateway"]["backends"] if item["name"] == "zoo")
             assert zoo_health["healthy"] is True
@@ -362,7 +388,7 @@ def main() -> None:
                 audit_count = database.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
                 assert audit_count >= 1
 
-            print("dashboard-v7.3.3: PASS")
+            print("dashboard-v7.3.4: PASS")
         finally:
             process.terminate()
             try:

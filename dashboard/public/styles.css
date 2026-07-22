@@ -371,7 +371,7 @@ tbody tr:hover {
 }
 .filters {
   display: grid;
-  grid-template-columns: 1.2fr 1.3fr 1.2fr 0.7fr 1.5fr 0.65fr;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -414,6 +414,72 @@ label {
 .layer-chip.transport {
   color: var(--cyan);
   background: rgba(39, 215, 255, 0.1);
+}
+.layer-chip.protocol,
+.layer-chip.wire,
+.layer-chip.round_trip {
+  color: #ffd894;
+  background: rgba(255, 190, 79, 0.12);
+}
+.layer-chip.decode_failure {
+  color: #ff9d9d;
+  background: rgba(255, 91, 91, 0.12);
+}
+#packetDialog {
+  width: min(1180px, 94vw);
+}
+.packet-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+.packet-detail-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+.packet-detail-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.packet-detail-section {
+  margin-top: 14px;
+  min-width: 0;
+}
+.packet-detail-section h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.packet-detail-section pre {
+  max-height: 320px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.packet-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+.packet-section-head span {
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.packet-raw-record {
+  margin-top: 16px;
+  color: var(--muted);
+}
+.packet-raw-record summary {
+  cursor: pointer;
+}
+@media (max-width: 850px) {
+  .packet-detail-columns,
+  .packet-detail-summary {
+    grid-template-columns: 1fr;
+  }
 }
 .event-list {
   display: grid;

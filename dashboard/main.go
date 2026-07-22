@@ -484,6 +484,9 @@ func (d *dashboard) combinedRuntimeState() map[string]any {
 	merge(gateway)
 	sessionCore := safeMap(filepath.Join(d.runtimeDir, "session-core-state.json"))
 	merge(sessionCore)
+	if packs, ok := sessionCore["protocolPacks"].([]any); ok {
+		combined["protocolPacks"] = packs
+	}
 	backends := make([]any, 0, len(order))
 	for _, id := range order {
 		backends = append(backends, byID[id])
@@ -809,6 +812,12 @@ func (d *dashboard) handlePackets(w http.ResponseWriter, r *http.Request) {
 	if layer == "" || layer == "all" || layer == "gameplay" {
 		records = append(records, readRotated(filepath.Join(d.runtimeDir, "gameplay-packets.jsonl"), limit)...)
 	}
+	if layer == "" || layer == "all" || layer == "protocol" {
+		paths, _ := filepath.Glob(filepath.Join(d.runtimeDir, "protocol-observations", "*", "*.jsonl"))
+		for _, path := range paths {
+			records = append(records, readRotated(path, limit)...)
+		}
+	}
 	sort.SliceStable(records, func(i, j int) bool {
 		a, _ := number(records[i]["timestamp"])
 		b, _ := number(records[j]["timestamp"])
@@ -818,7 +827,11 @@ func (d *dashboard) handlePackets(w http.ResponseWriter, r *http.Request) {
 	player := r.URL.Query().Get("player")
 	packetID := r.URL.Query().Get("packetId")
 	query := r.URL.Query().Get("q")
+	tier := r.URL.Query().Get("tier")
+	recordID := r.URL.Query().Get("recordId")
+	includeDetails := r.URL.Query().Get("details") == "1"
 	filtered := make([]map[string]any, 0, limit)
+	tierCounts := map[string]int{}
 	for _, record := range records {
 		if _, ok := record["packetName"]; !ok {
 			if id := textField(record, "packetId"); id != "" {
@@ -830,8 +843,25 @@ func (d *dashboard) handlePackets(w http.ResponseWriter, r *http.Request) {
 		if direction != "" && textField(record, "direction") != direction {
 			continue
 		}
+		if recordID != "" && textField(record, "recordId") != recordID {
+			continue
+		}
 		if packetID != "" && textField(record, "packetId") != packetID {
 			continue
+		}
+		if tier != "" {
+			matched := false
+			if tiers, ok := record["captureTiers"].([]any); ok {
+				for _, value := range tiers {
+					if fmt.Sprint(value) == tier {
+						matched = true
+						break
+					}
+				}
+			}
+			if !matched {
+				continue
+			}
 		}
 		if player != "" {
 			hay := textField(record, "playerName") + " " + textField(record, "xuid") + " " + textField(record, "client") + " " + textField(record, "ip")
@@ -845,12 +875,40 @@ func (d *dashboard) handlePackets(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
-		filtered = append(filtered, record)
+		view := record
+		if !includeDetails && textField(record, "layer") == "protocol" {
+			view = make(map[string]any, len(record))
+			for key, value := range record {
+				view[key] = value
+			}
+			for _, key := range []string{"decoded", "translatedDecoded", "decodeError"} {
+				if _, exists := view[key]; exists {
+					view["hasDetails"] = true
+					delete(view, key)
+				}
+			}
+			if rawWire, exists := view["wire"].(map[string]any); exists {
+				wire := make(map[string]any, len(rawWire))
+				for key, value := range rawWire {
+					if key != "data" {
+						wire[key] = value
+					}
+				}
+				view["wire"] = wire
+				view["hasDetails"] = true
+			}
+		}
+		filtered = append(filtered, view)
+		if tiers, ok := record["captureTiers"].([]any); ok {
+			for _, value := range tiers {
+				tierCounts[fmt.Sprint(value)]++
+			}
+		}
 		if len(filtered) >= limit {
 			break
 		}
 	}
-	writeJSON(w, 200, map[string]any{"records": filtered, "count": len(filtered)})
+	writeJSON(w, 200, map[string]any{"records": filtered, "count": len(filtered), "tiers": tierCounts})
 }
 func (d *dashboard) handleEvents(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))

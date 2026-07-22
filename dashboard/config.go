@@ -166,6 +166,12 @@ session_minutes = 480
 enabled = true
 version = 1.26.30
 advertised_version = 1.26.33
+protocol_capture_enabled = true
+protocol_capture_mode = metadata
+protocol_observation_max_bytes = 10485760
+protocol_capture_packet_ids = 30,77
+protocol_capture_max_packet_bytes = 65536
+protocol_capture_decode_failures = true
 listen_host = 0.0.0.0
 internal_token = env:SESSION_CORE_TOKEN
 motd = Ninj-OS Proxie Network
@@ -353,7 +359,7 @@ func serializeUnifiedConfig(document *iniDocument) (string, error) {
 	keyOrder := map[string][]string{
 		"edge":         {"config_version", "instance_name", "public_host", "primary_allocation_port", "managed_public_udp_ports", "primary_backend", "routing_mode"},
 		"dashboard":    {"port", "public_host", "owner_username", "owner_token", "operator_token", "viewer_token", "metrics_token", "totp_secret", "session_minutes"},
-		"session_core": {"enabled", "version", "advertised_version", "listen_host", "internal_token", "motd", "sub_motd", "require_transfer_ticket", "command_prefix", "profiles_folder"},
+		"session_core": {"enabled", "version", "advertised_version", "protocol_capture_enabled", "protocol_capture_mode", "protocol_observation_max_bytes", "protocol_capture_packet_ids", "protocol_capture_max_packet_bytes", "protocol_capture_decode_failures", "listen_host", "internal_token", "motd", "sub_motd", "require_transfer_ticket", "command_prefix", "profiles_folder"},
 		"companion":    {"default_secret", "presence_ttl_seconds", "capture_mode", "selected_packet_ids", "payload_limit", "redact_packet_ids", "queue_capacity", "batch_size", "flush_ms", "movement_sample_rate", "metrics_interval_ticks", "reconnect_seconds", "presence_enabled", "presence_include_address", "transfer_enabled", "drop_receive_ids", "drop_send_ids"},
 		"transfer":     {"enabled", "public_host", "port_start", "port_end", "ticket_ttl_seconds", "require_source_ip"},
 		"firewall":     {"enabled", "adaptive", "risk_decay_per_minute", "risk_warning_threshold", "risk_ban_threshold", "progressive_ban_seconds", "max_datagram_size", "max_packets_per_second_per_ip", "global_packets_per_second", "max_handshakes_per_minute", "max_sessions", "max_sessions_per_ip"},
@@ -440,10 +446,77 @@ func validateUnifiedConfig(document *iniDocument) error {
 	if transferEnd < transferStart {
 		return errors.New("transfer.port_end must be greater than or equal to transfer.port_start")
 	}
+	captureMode := document.get("session_core", "protocol_capture_mode", "metadata")
+	validCaptureModes := map[string]bool{"metadata": true, "decoded": true, "wire": true, "full": true, "redacted_payload": true}
+	if !validCaptureModes[captureMode] {
+		return fmt.Errorf("session_core.protocol_capture_mode must be metadata, decoded, wire, or full")
+	}
+	for _, raw := range strings.Split(document.get("session_core", "protocol_capture_packet_ids", "30,77"), ",") {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		packetID, packetErr := strconv.Atoi(raw)
+		if packetErr != nil || packetID < 0 || packetID > 1023 {
+			return fmt.Errorf("session_core.protocol_capture_packet_ids contains invalid packet ID %q", raw)
+		}
+	}
+	for key, bounds := range map[string][2]int{
+		"protocol_capture_max_packet_bytes": {64, 1048576},
+		"protocol_observation_max_bytes":    {65536, 1073741824},
+	} {
+		raw := strings.TrimSpace(document.get("session_core", key, ""))
+		if raw == "" {
+			continue
+		}
+		value, valueErr := strconv.Atoi(raw)
+		if valueErr != nil || value < bounds[0] || value > bounds[1] {
+			return fmt.Errorf("session_core.%s must be between %d and %d", key, bounds[0], bounds[1])
+		}
+	}
+	if err := validateUnifiedSecrets(document); err != nil {
+		return err
+	}
 	for _, backend := range topology.Backends {
 		if backend.PublicPort == dashboardPort {
 			// Same numeric port is valid because the backend route is UDP and dashboard is TCP.
 			continue
+		}
+	}
+	return nil
+}
+
+func validateUnifiedSecrets(document *iniDocument) error {
+	ids := []string{
+		"dashboard.operator_token", "dashboard.viewer_token", "dashboard.metrics_token",
+		"dashboard.totp_secret", "session_core.internal_token", "companion.default_secret",
+		"discord.webhook_url", "discord.bot_token",
+	}
+	for section := range document.Sections {
+		if strings.HasPrefix(section, "backend.") {
+			ids = append(ids, section+".companion_secret")
+		}
+	}
+	for _, id := range ids {
+		location, err := secretLocationForID(document, id)
+		if err != nil {
+			return err
+		}
+		reference := strings.TrimSpace(document.get(location.Section, location.Key, ""))
+		if reference == "" {
+			continue
+		}
+		value := reference
+		if variable := envNameFromReference(reference); variable != "" {
+			value = strings.TrimSpace(os.Getenv(variable))
+			// Optional Startup variables may be populated only when the service
+			// restarts. The Vault rejects empty variables when selecting them.
+			if value == "" {
+				continue
+			}
+		}
+		if err := validateManagedSecret(location, value); err != nil {
+			return fmt.Errorf("%s: %w", location.Label, err)
 		}
 	}
 	return nil
@@ -494,8 +567,10 @@ func applyTopologyToUnified(document *iniDocument, topology topologyConfig) erro
 	if err := validateTopology(topology); err != nil {
 		return err
 	}
-	for section := range document.Sections {
+	existingSecrets := map[string]string{}
+	for section, values := range document.Sections {
 		if strings.HasPrefix(section, "backend.") {
+			existingSecrets[strings.TrimPrefix(section, "backend.")] = values["companion_secret"]
 			delete(document.Sections, section)
 		}
 	}
@@ -517,11 +592,9 @@ func applyTopologyToUnified(document *iniDocument, topology topologyConfig) erro
 		section["backend_online_mode"] = strconv.FormatBool(backend.BackendOnlineMode)
 		section["require_proxy_identity"] = strconv.FormatBool(backend.RequireProxyIdentity)
 		section["capacity"] = strconv.Itoa(backend.Capacity)
-		if backend.CompanionSecretEnv != "" {
-			section["companion_secret"] = "env:" + backend.CompanionSecretEnv
-		} else {
-			section["companion_secret"] = ""
-		}
+		// Credential sources are exclusively managed through the Secret Vault.
+		// A topology save must never rotate or erase an existing secret.
+		section["companion_secret"] = existingSecrets[backend.ID]
 	}
 	return nil
 }
@@ -757,21 +830,29 @@ live_config_reload_ms=1000
 	}
 
 	sessionCoreConfig := map[string]any{
-		"schemaVersion":         1,
-		"enabled":               document.getBool("session_core", "enabled", true),
-		"version":               document.get("session_core", "version", "1.26.30"),
-		"advertisedVersion":     document.get("session_core", "advertised_version", "1.26.33"),
-		"listenHost":            document.get("session_core", "listen_host", "0.0.0.0"),
-		"publicHost":            document.get("edge", "public_host", "127.0.0.1"),
-		"dashboardUrl":          "http://127.0.0.1:" + strconv.Itoa(document.getInt("dashboard", "port", 25571, 1, 65535)),
-		"internalToken":         resolveConfigValue(document.get("session_core", "internal_token", "env:SESSION_CORE_TOKEN")),
-		"motd":                  document.get("session_core", "motd", "Ninj-OS Proxie Network"),
-		"subMotd":               document.get("session_core", "sub_motd", "Protected Bedrock Network"),
-		"requireTransferTicket": document.getBool("session_core", "require_transfer_ticket", false),
-		"profilesFolder":        document.get("session_core", "profiles_folder", filepath.Join(runtimeDir, "session-core-profiles")),
-		"stateFile":             filepath.Join(runtimeDir, "session-core-state.json"),
-		"primaryBackend":        topology.PrimaryBackend,
-		"backends":              fullProxyBackends,
+		"schemaVersion":                 1,
+		"enabled":                       document.getBool("session_core", "enabled", true),
+		"version":                       document.get("session_core", "version", "1.26.30"),
+		"advertisedVersion":             document.get("session_core", "advertised_version", "1.26.33"),
+		"protocolPackDirectory":         filepath.Join("session-core", "protocol-packs"),
+		"protocolObservationDirectory":  filepath.Join(runtimeDir, "protocol-observations"),
+		"protocolCaptureEnabled":        document.getBool("session_core", "protocol_capture_enabled", true),
+		"protocolCaptureMode":           document.get("session_core", "protocol_capture_mode", "metadata"),
+		"protocolObservationMaxBytes":   document.getInt("session_core", "protocol_observation_max_bytes", 10485760, 65536, 1073741824),
+		"protocolCapturePacketIds":      document.get("session_core", "protocol_capture_packet_ids", "30,77"),
+		"protocolCaptureMaxPacketBytes": document.getInt("session_core", "protocol_capture_max_packet_bytes", 65536, 64, 1048576),
+		"protocolCaptureDecodeFailures": document.getBool("session_core", "protocol_capture_decode_failures", true),
+		"listenHost":                    document.get("session_core", "listen_host", "0.0.0.0"),
+		"publicHost":                    document.get("edge", "public_host", "127.0.0.1"),
+		"dashboardUrl":                  "http://127.0.0.1:" + strconv.Itoa(document.getInt("dashboard", "port", 25571, 1, 65535)),
+		"internalToken":                 resolveConfigValue(document.get("session_core", "internal_token", "env:SESSION_CORE_TOKEN")),
+		"motd":                          document.get("session_core", "motd", "Ninj-OS Proxie Network"),
+		"subMotd":                       document.get("session_core", "sub_motd", "Protected Bedrock Network"),
+		"requireTransferTicket":         document.getBool("session_core", "require_transfer_ticket", false),
+		"profilesFolder":                document.get("session_core", "profiles_folder", filepath.Join(runtimeDir, "session-core-profiles")),
+		"stateFile":                     filepath.Join(runtimeDir, "session-core-state.json"),
+		"primaryBackend":                topology.PrimaryBackend,
+		"backends":                      fullProxyBackends,
 	}
 	sessionBytes, _ := json.MarshalIndent(sessionCoreConfig, "", "  ")
 	if err := os.WriteFile(filepath.Join(runtimeDir, "session-core.json"), sessionBytes, 0600); err != nil {
@@ -985,6 +1066,9 @@ func isSecretConfigKey(section, key string) bool {
 	if section == "companion" && key == "default_secret" {
 		return true
 	}
+	if section == "session_core" && key == "internal_token" {
+		return true
+	}
 	if section == "discord" && (key == "webhook_url" || key == "bot_token") {
 		return true
 	}
@@ -1014,6 +1098,33 @@ func mergeRedactedSecrets(candidate, current *iniDocument) {
 			}
 			if currentValues := current.Sections[section]; currentValues != nil {
 				values[key] = currentValues[key]
+			}
+		}
+	}
+}
+
+func preserveVaultManagedSecrets(candidate, current *iniDocument) {
+	for section, currentValues := range current.Sections {
+		candidateValues := candidate.Sections[section]
+		if candidateValues == nil {
+			continue
+		}
+		for key, value := range currentValues {
+			if !isSecretConfigKey(section, key) {
+				continue
+			}
+			candidateValues[key] = value
+		}
+	}
+	// A backend created in the advanced editor starts without credentials and
+	// must be configured through the Vault after it exists.
+	for section, values := range candidate.Sections {
+		if current.Sections[section] != nil {
+			continue
+		}
+		for key := range values {
+			if isSecretConfigKey(section, key) {
+				values[key] = ""
 			}
 		}
 	}
@@ -1141,7 +1252,7 @@ func (d *dashboard) handleUnifiedConfig(w http.ResponseWriter, r *http.Request) 
 			"path":     d.configPath,
 			"content":  renderUnifiedConfig(redactUnifiedDocument(document)),
 			"revision": configRevision(document),
-			"note":     "Use env:VARIABLE only when that variable is populated in the running service. Raw secrets are redacted and preserved when the file is saved.",
+			"note":     "Credentials are redacted and read-only here. Use the Secret Vault to set, rotate, inherit, or bind every managed credential.",
 		})
 	case http.MethodPost, http.MethodPut:
 		var request struct {
@@ -1164,6 +1275,7 @@ func (d *dashboard) handleUnifiedConfig(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		mergeRedactedSecrets(candidate, current)
+		preserveVaultManagedSecrets(candidate, current)
 		if err := validateUnifiedConfig(candidate); err != nil {
 			writeJSON(w, 400, map[string]string{"error": err.Error()})
 			return

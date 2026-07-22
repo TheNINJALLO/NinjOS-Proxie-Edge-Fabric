@@ -61,7 +61,7 @@ def main() -> None:
     package_script = (ROOT / "scripts" / "package-release.sh").read_text(encoding="utf-8")
     assert "ENDSTONE-COMPANION-HOWTO.md" in package_script
 
-    print("companion-release-assets-v7.3.3: PASS")
+    print("companion-release-assets-v7.3.4: PASS")
 
 
 if __name__ == "__main__":

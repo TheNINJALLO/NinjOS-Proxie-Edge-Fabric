@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "Bedrock 1.26.30–1.26.33",
+  "protocol": 1001,
+  "minecraftVersions": ["1.26.30", "1.26.31", "1.26.32", "1.26.33"],
+  "codecVersion": "1.26.30",
+  "mode": "native",
+  "translators": []
+}

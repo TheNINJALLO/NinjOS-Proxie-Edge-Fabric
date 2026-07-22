@@ -7,7 +7,7 @@ trap 'rm -rf "${TEMP}"' EXIT
 STAGE="${TEMP}/stage"
 INSTALL_ROOT="${TEMP}/install"
 ENV_FILE="${TEMP}/ninjos.env"
-ARCHIVE="${TEMP}/NinjOS-Proxie-Edge-Fabric-v7.3.3-Runtime.tar.gz"
+ARCHIVE="${TEMP}/NinjOS-Proxie-Edge-Fabric-v7.3.4-Runtime.tar.gz"
 mkdir -p "${STAGE}"
 
 cp "${ROOT}/prebuilt/linux-x86_64/NinjOSEdge" "${STAGE}/"
@@ -55,4 +55,4 @@ if run_installer >/dev/null 2>&1; then
 fi
 mv "${TEMP}/good.sha256" "${ARCHIVE}.sha256"
 
-printf 'standalone-installer-v7.3.3: PASS\n'
+printf 'standalone-installer-v7.3.4: PASS\n'
