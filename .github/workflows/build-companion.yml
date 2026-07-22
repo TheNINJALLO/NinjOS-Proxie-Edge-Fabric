@@ -111,8 +111,8 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in {1..60}; do
-            if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-              gh release upload "${GITHUB_REF_NAME}" dist/*.zip --clobber
+            if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+              gh release upload "${GITHUB_REF_NAME}" dist/*.zip --clobber --repo "${GITHUB_REPOSITORY}"
               exit 0
             fi
             sleep 10
