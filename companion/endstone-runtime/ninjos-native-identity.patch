@@ -14,7 +14,7 @@ index 155b1cb..a1dba8a 100644
  #include <magic_enum/magic_enum.hpp>
  
  #include "bedrock/locale/i18n.h"
-@@ -154,7 +159,27 @@ std::optional<PlayerAuthenticationInfo> ServerNetworkHandler::_validateLoginPack
+@@ -154,7 +159,26 @@ std::optional<PlayerAuthenticationInfo> ServerNetworkHandler::_validateLoginPack
          return auth_info;
      }
  
