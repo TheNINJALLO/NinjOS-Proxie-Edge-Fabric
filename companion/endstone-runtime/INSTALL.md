@@ -17,7 +17,7 @@ NINJOS_TRUST_PROXY_IDENTITY=1
 ```
 
 Keep the backend UDP port private and reachable only from Edge Fabric. The hook
-accepts proxy identity claims only for self-signed offline sessions; Companion
+accepts proxy identity claims only when the native XUID is empty; Companion
 then consumes the corresponding one-use signed dashboard grant and kicks the
 player if verification fails.
 

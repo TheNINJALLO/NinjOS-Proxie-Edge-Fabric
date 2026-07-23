@@ -8,7 +8,7 @@
   XUID, UUID, gamertag, and one-use session identifier.
 - Added a Ninj-OS Endstone 0.11.6 runtime patch that restores those values in
   `PlayerAuthenticationInfo` before the native player is constructed.
-- Gated native restoration behind `NINJOS_TRUST_PROXY_IDENTITY=1`, self-signed
+- Gated native restoration behind `NINJOS_TRUST_PROXY_IDENTITY=1`, an empty native XUID,
   offline authentication, strict claim validation, and the existing Companion
   one-use grant verification and rejection path.
 - Bundled the patched Endstone wheel and installation guide inside Companion

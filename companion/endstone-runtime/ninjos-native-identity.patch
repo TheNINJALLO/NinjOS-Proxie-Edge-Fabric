@@ -21,8 +21,7 @@ index 155b1cb..a1dba8a 100644
 -    const auto &info = *auth_info;
 +    auto &info = *auth_info;
 +    const auto *trust_proxy = std::getenv("NINJOS_TRUST_PROXY_IDENTITY");
-+    if (info.xuid.empty() && trust_proxy != nullptr && std::string_view{trust_proxy} == "1" &&
-+        packet.payload.connection_request->getAuthenticationType() == PlayerAuthenticationType::SelfSigned) {
++    if (info.xuid.empty() && trust_proxy != nullptr && std::string_view{trust_proxy} == "1") {
 +        const auto &claims = packet.payload.connection_request->_getRawRequest().getData();
 +        const auto version = claims["NinjOSProxyIdentityVersion"].asInt();
 +        const auto session_id = claims["NinjOSProxySessionId"].asString();
