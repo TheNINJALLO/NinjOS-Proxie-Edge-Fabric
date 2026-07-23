@@ -2,12 +2,19 @@
 
 ## Movement works, but break, place, use, or interact disconnects
 
-Upgrade Edge Fabric to v7.3.8 or newer. Earlier Full Proxy builds decoded and
+Upgrade Edge Fabric to v7.3.9 or newer. Earlier Full Proxy builds decoded and
 serialized every gameplay packet, which could alter hotfix packet layouts even
-when the client and backend both used protocol 1001. The lossless relay in v7.3.8
+when the client and backend both used protocol 1001. The lossless relay in v7.3.9
 forwards original decrypted packet bytes unless a reviewed translator explicitly
 changes the packet. If a disconnect remains, retain the Session Core error and
 the matching Protocol Inspector decode-failure record.
+
+If the player remains connected but the block does not break, open Packet
+Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.9 or newer,
+the Gameplay summary shows the block actions seen from the client. No
+`start_break`/`continue_break` actions indicates client input permissions or game
+mode; present actions indicate the backend is rejecting them, so check adventure
+mode, spawn protection, claims, and protection-plugin permissions.
 
 ## Configuration or Secret Vault changes do not save
 

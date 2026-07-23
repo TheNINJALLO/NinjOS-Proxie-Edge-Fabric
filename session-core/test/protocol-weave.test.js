@@ -4,7 +4,7 @@ const assert = require('node:assert')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { ProtocolWeave, redactValue, validatePack, parsePacketId, firstMismatch } = require('../src/protocol-weave')
+const { ProtocolWeave, redactValue, validatePack, parsePacketId, firstMismatch, summarizePacket } = require('../src/protocol-weave')
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ninjos-protocol-weave-'))
 const packs = path.join(root, 'packs')
@@ -77,6 +77,16 @@ assert.strictEqual(redactValue({ payload: Buffer.alloc(20) }).payload, '[BINARY:
 assert.throws(() => validatePack({ protocol: 5, mode: 'magic', minecraftVersions: ['x'], codecVersion: 'x' }, 'fixture'))
 assert.strictEqual(parsePacketId(Buffer.from([0x85, 0x08])), 5)
 assert.strictEqual(firstMismatch(Buffer.from([1, 2]), Buffer.from([1, 3])), 1)
+assert.deepStrictEqual(summarizePacket('player_auth_input', {
+  tick: 42n,
+  input_data: { block_action: true, jumping: false, item_interact: true },
+  block_action: [{ action: 'start_break' }, { action: 'continue_break' }],
+  transaction: { type: 'use_item' }
+}), {
+  category: 'player_input', clientTick: '42', inputFlags: ['block_action', 'item_interact'],
+  blockActionCount: 2, blockActions: ['start_break', 'continue_break'],
+  hasItemInteraction: true, hasItemStackRequest: false
+})
 
 const fallbackWeave = new ProtocolWeave({
   packDirectory: path.join(root, 'missing-packs'),

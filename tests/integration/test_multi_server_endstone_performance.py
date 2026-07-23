@@ -159,7 +159,7 @@ def main() -> None:
             assert 'id="endstoneSummary"' in html
             assert ".endstone-server-grid" in styles
 
-            print("multi-server-endstone-performance-v7.3.8: PASS")
+            print("multi-server-endstone-performance-v7.3.9: PASS")
         finally:
             try:
                 os.killpg(process.pid, signal.SIGTERM)

@@ -91,6 +91,7 @@ type dashboard struct {
 	maxBody               int64
 	gameplayLogBytes      int64
 	packetNames           map[string]string
+	packetCatalog         map[string]any
 	discordWebhook        string
 	discordBotToken       string
 	discordChannel        string
@@ -217,10 +218,29 @@ func main() {
 		identityGrants: map[string]identityGrant{},
 	}
 	if bytes, err := assets.ReadFile("packet-names.json"); err == nil {
-		_ = json.Unmarshal(bytes, &d.packetNames)
+		var catalog struct {
+			Source            string            `json:"source"`
+			SourceURL         string            `json:"sourceUrl"`
+			SourceCommit      string            `json:"sourceCommit"`
+			MinecraftVersions []string          `json:"minecraftVersions"`
+			ProtocolVersions  []int             `json:"protocolVersions"`
+			PacketCount       int               `json:"packetCount"`
+			Packets           map[string]string `json:"packets"`
+		}
+		if json.Unmarshal(bytes, &catalog) == nil {
+			d.packetNames = catalog.Packets
+			d.packetCatalog = map[string]any{
+				"source": catalog.Source, "sourceUrl": catalog.SourceURL,
+				"sourceCommit": catalog.SourceCommit, "minecraftVersions": catalog.MinecraftVersions,
+				"protocolVersions": catalog.ProtocolVersions, "packetCount": catalog.PacketCount,
+			}
+		}
 	}
 	if d.packetNames == nil {
 		d.packetNames = map[string]string{}
+	}
+	if d.packetCatalog == nil {
+		d.packetCatalog = map[string]any{"source": "unavailable", "packetCount": 0}
 	}
 	if d.transferPortEnd < d.transferPortStart {
 		d.transferPortStart, d.transferPortEnd = d.transferPortEnd, d.transferPortStart
@@ -792,6 +812,21 @@ func textField(record map[string]any, key string) string {
 	}
 	return ""
 }
+
+func (d *dashboard) enrichPacketName(record map[string]any) {
+	id := textField(record, "packetId")
+	name := d.packetNames[id]
+	if id == "" || name == "" {
+		return
+	}
+	existing := strings.TrimSpace(textField(record, "packetName"))
+	if existing != "" && !strings.HasPrefix(existing, "Unknown packet #") && existing != "Packet #"+id && existing != name {
+		record["decodedPacketName"] = existing
+	}
+	record["packetName"] = name
+	record["packetNameSource"] = "Mojang/bedrock-protocol-docs"
+}
+
 func containsFold(value, needle string) bool {
 	return strings.Contains(strings.ToLower(value), strings.ToLower(needle))
 }
@@ -833,13 +868,7 @@ func (d *dashboard) handlePackets(w http.ResponseWriter, r *http.Request) {
 	filtered := make([]map[string]any, 0, limit)
 	tierCounts := map[string]int{}
 	for _, record := range records {
-		if _, ok := record["packetName"]; !ok {
-			if id := textField(record, "packetId"); id != "" {
-				if name := d.packetNames[id]; name != "" {
-					record["packetName"] = name
-				}
-			}
-		}
+		d.enrichPacketName(record)
 		if direction != "" && textField(record, "direction") != direction {
 			continue
 		}
@@ -908,7 +937,7 @@ func (d *dashboard) handlePackets(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	writeJSON(w, 200, map[string]any{"records": filtered, "count": len(filtered), "tiers": tierCounts})
+	writeJSON(w, 200, map[string]any{"records": filtered, "count": len(filtered), "tiers": tierCounts, "catalog": d.packetCatalog})
 }
 func (d *dashboard) handleEvents(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -1393,13 +1422,9 @@ func (d *dashboard) handleIngest(w http.ResponseWriter, r *http.Request) {
 			if textField(record, "xuid") != "" || textField(record, "playerName") != "" {
 				presenceUpdates = append(presenceUpdates, record)
 			}
+			d.enrichPacketName(record)
 			if textField(record, "packetName") == "" {
-				id := textField(record, "packetId")
-				if name := d.packetNames[id]; name != "" {
-					record["packetName"] = name
-				} else {
-					record["packetName"] = "Packet #" + id
-				}
+				record["packetName"] = "Packet #" + textField(record, "packetId")
 			}
 			d.appendJSONL(filepath.Join(d.runtimeDir, "gameplay-packets.jsonl"), record, d.gameplayLogBytes)
 			accepted++

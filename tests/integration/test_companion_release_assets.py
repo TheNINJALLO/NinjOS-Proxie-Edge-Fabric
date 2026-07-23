@@ -68,7 +68,7 @@ def main() -> None:
     assert "if (identity.operator_status) player->setOp(true);" in plugin_source
     assert "player->setOp(identity.operator_status);" not in plugin_source
 
-    print("companion-release-assets-v7.3.8: PASS")
+    print("companion-release-assets-v7.3.9: PASS")
 
 
 if __name__ == "__main__":

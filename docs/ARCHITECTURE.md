@@ -8,7 +8,7 @@ The static C++20 gateway owns Transparent Auth UDP listeners, rate controls, add
 
 The Node.js Session Core uses the pinned `bedrock-protocol` dependency for Full Proxy listeners. It authenticates the upstream player session, opens a separate offline downstream connection, tracks network players, handles proxy commands, prepares signed one-use identity grants, and redirects players to configured public fallback listeners.
 
-Each enabled Full Proxy backend has its own public UDP listener. Current v7.3.8 switching uses a controlled Bedrock transfer to another Ninj-OS listener. A retained-session downstream hot-swap remains a later hardening target and is not represented as complete.
+Each enabled Full Proxy backend has its own public UDP listener. Current v7.3.9 switching uses a controlled Bedrock transfer to another Ninj-OS listener. A retained-session downstream hot-swap remains a later hardening target and is not represented as complete.
 
 ## Control Plane
 
