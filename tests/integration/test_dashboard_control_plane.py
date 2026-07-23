@@ -48,11 +48,7 @@ def request(path: str, method: str = "GET", body=None, token: str = "", headers=
     if token:
         request_headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", data=payload, method=method, headers=request_headers)
-    try:
-        response = urllib.request.urlopen(req, timeout=4)
-    except urllib.error.HTTPError as error:
-        response = error
-    with response:
+    with urllib.request.urlopen(req, timeout=4) as response:
         raw = response.read()
         if response.headers.get("Content-Type", "").startswith("application/json"):
             return response.status, json.loads(raw)
@@ -383,14 +379,17 @@ def main() -> None:
             assert status == 200
             assert updated_profile["updated"] is True
 
-            status, invalid_role = request("/api/profiles/access", "POST", {
-                "xuid": "2535000000000001",
-                "role": "superuser",
-                "banned": False,
-                "access": {},
-            }, session)
-            assert status == 400
-            assert "role" in invalid_role["error"].lower()
+            try:
+                request("/api/profiles/access", "POST", {
+                    "xuid": "2535000000000001",
+                    "role": "superuser",
+                    "banned": False,
+                    "access": {},
+                }, session)
+                raise AssertionError("Invalid network role unexpectedly succeeded")
+            except urllib.error.HTTPError as error:
+                assert error.code == 400
+                assert "role" in json.loads(error.read())["error"].lower()
 
             _, profiles = request("/api/profiles", token=session)
             assert any(row["xuid"] == "2535000000000001" and row["network_role"] == "operator" for row in profiles["profiles"])
