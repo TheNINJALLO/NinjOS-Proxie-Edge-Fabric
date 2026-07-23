@@ -1,5 +1,19 @@
 # Changelog
 
+## 7.3.12 - 2026-07-23
+
+### Lossless schema-volatile login packets
+
+- Added a pre-decode fast path for clientbound packet `0x34` (`CraftingData`)
+  and packet `0xD1` (`VoxelShapes`).
+- Forwarded both packets byte-for-byte without invoking the lagging recipe or
+  voxel schema, preventing large login packets from blocking the event loop or
+  producing misleading partial-string failures.
+- Retained safe Packet Inspector metadata containing the packet ID, direction,
+  byte count, protocol pack, and lossless-passthrough action.
+- Added Session Core regression coverage for the bypass markers and passive
+  Protocol Weave observation records.
+
 ## 7.3.11 - 2026-07-23
 
 ### Network player role persistence

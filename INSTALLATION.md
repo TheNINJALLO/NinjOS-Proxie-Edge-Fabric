@@ -1,19 +1,19 @@
-# Ninj-OS Proxie Edge Fabric v7.3.11 installation index
+# Ninj-OS Proxie Edge Fabric v7.3.12 installation index
 
-v7.3.11 is one universal package for Pterodactyl, standalone Linux, Docker on Linux, and Windows through WSL2. The same proxy can mix native `online-mode=true` routes with proxy-authenticated `online-mode=false` routes.
+v7.3.12 is one universal package for Pterodactyl, standalone Linux, Docker on Linux, and Windows through WSL2. The same proxy can mix native `online-mode=true` routes with proxy-authenticated `online-mode=false` routes.
 
 ## Package contents
 
 The deployment ZIP contains:
 
 ```text
-NinjOS-Proxie-Edge-Fabric-v7.3.11-Runtime.tar.gz
-egg-ninjos-proxie-edge-fabric-v7.3.11.json
+NinjOS-Proxie-Edge-Fabric-v7.3.12-Runtime.tar.gz
+egg-ninjos-proxie-edge-fabric-v7.3.12.json
 install-standalone.sh
 install-windows.ps1
 manage-windows.ps1
 uninstall-windows.ps1
-NinjOS-Vanilla-Bridge-v7.3.11.mcpack
+NinjOS-Vanilla-Bridge-v7.3.12.mcpack
 NinjOS-Endstone-Companion-v3.6.1-GitHub-Clean.zip
 ENDSTONE-COMPANION-HOWTO.md
 docs/

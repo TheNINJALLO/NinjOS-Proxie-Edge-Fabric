@@ -87,7 +87,7 @@ def main() -> None:
             assert state["protocolPacks"][0]["protocol"] == 1001
             assert state["backends"][0]["protocolCompatibility"]["supported"] is True
             assert "jsp-raknet" not in output or True
-            print("session-core-startup-v7.3.11: PASS")
+            print("session-core-startup-v7.3.12: PASS")
         finally:
             try:
                 if hasattr(os, "killpg"):

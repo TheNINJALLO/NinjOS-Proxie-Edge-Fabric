@@ -299,6 +299,21 @@ class ProtocolWeave {
     this.queueObservation(path.join(directory, `${safeBackend}.jsonl`), record)
   }
 
+  observeLosslessPassthrough (pack, backendId, direction, rawBuffer, packetId) {
+    if (!this.captureEnabled || !Buffer.isBuffer(rawBuffer)) return
+    const safeBackend = String(backendId || 'unknown').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'unknown'
+    const protocol = pack?.protocol || 0
+    const directory = path.join(this.observationDirectory, String(protocol || 'unknown'))
+    fs.mkdirSync(directory, { recursive: true })
+    const packetNames = { 0x34: 'CraftingData', 0xd1: 'VoxelShapes' }
+    this.queueObservation(path.join(directory, `${safeBackend}.jsonl`), {
+      recordId: crypto.randomUUID(), timestamp: Date.now(), type: 'protocol_passthrough', layer: 'protocol', protocol,
+      pack: pack?.name || 'unresolved', backend: safeBackend, direction, packetId,
+      packetName: packetNames[packetId] || `Unknown packet #${packetId ?? '?'}`,
+      action: 'lossless_passthrough', bytes: rawBuffer.length, captureTiers: ['metadata'], sensitive: false
+    })
+  }
+
   queueObservation (file, record) {
     const line = `${JSON.stringify(record)}\n`
     const bytes = Buffer.byteLength(line)

@@ -5,7 +5,7 @@ package main
 
 const (
 	productName           = "Ninj-OS Proxie Edge Fabric"
-	productVersion        = "7.3.11"
+	productVersion        = "7.3.12"
 	productEngine         = "Ninj-OS Edge Datagram Engine"
 	productImplementation = "Ninj-OS protocol-agnostic transport core"
 	productReference      = "ProxyPass by SculkCatalystMC"
