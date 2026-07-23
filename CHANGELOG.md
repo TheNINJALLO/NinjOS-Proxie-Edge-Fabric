@@ -1,5 +1,15 @@
 # Changelog
 
+## 7.3.14 - 2026-07-23
+
+### Python 3.14 Endstone runtime
+
+- Rebuilt the version-locked Endstone identity runtime for CPython 3.14 so it
+  installs directly on the Pterodactyl `python_3.14` image.
+- Added a release-build ABI check that rejects any Companion package whose
+  patched wheel is not tagged `cp314-cp314`.
+- Updated Companion packaging and setup guidance for Companion v3.7.1.
+
 ## 7.3.13 - 2026-07-23
 
 ### Native Endstone proxy identity

@@ -550,7 +550,7 @@ the signed application-level check.
 
 Connection status proves that signed telemetry is accepted; permissions use a
 separate one-use identity grant during a Full Proxy join. Install Companion
-v3.7.0 or newer, confirm `identity_bridge_enabled=true`, and join through the
+v3.7.1 or newer, confirm `identity_bridge_enabled=true`, and join through the
 backend's Full Proxy public port. The companion briefly retries while Session
 Core publishes the grant and preserves OP already configured in Endstone. Look
 for an `identity.verified` event rather than relying only on `npm probe`.

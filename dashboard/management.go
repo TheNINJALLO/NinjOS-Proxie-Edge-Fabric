@@ -842,7 +842,7 @@ func (d *dashboard) handleCompanionDownload(w http.ResponseWriter, r *http.Reque
 			writeJSON(w, 404, map[string]string{"error": "Companion source archive is not installed in this runtime"})
 			return
 		}
-		serveDownload(w, d.companionSourcePath, "NinjOS-Endstone-Companion-v3.7.0-GitHub-Clean.zip", "application/zip")
+		serveDownload(w, d.companionSourcePath, "NinjOS-Endstone-Companion-v3.7.1-GitHub-Clean.zip", "application/zip")
 		d.appendAudit(r, principalFromRequest(r), "companion.source.download", "success", nil)
 		return
 	}

@@ -28,7 +28,7 @@ function writeRuntimeState () {
   const state = {
     timestamp: Date.now(),
     engine: 'session-core',
-    version: '7.3.13',
+    version: '7.3.14',
     protocolPacks: protocolWeave?.catalog() || [],
     protocolInspection: protocolWeave?.inspection() || { enabled: false },
     backends: [...active.values()].map(({ backend, relay, codecProtocol }) => ({
@@ -195,7 +195,7 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.13 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.14 · Full Proxy Session Core' })
   }
   return true
 }

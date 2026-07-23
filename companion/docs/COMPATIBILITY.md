@@ -17,7 +17,7 @@ servers.
 ## Current default
 
 ```text
-Plugin version: 3.7.0
+Plugin version: 3.7.1
 Default Endstone build target: 0.11.6
 C++ standard: C++20
 Compiler: Clang/LLVM 18

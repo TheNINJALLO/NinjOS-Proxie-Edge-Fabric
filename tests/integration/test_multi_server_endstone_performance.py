@@ -92,7 +92,7 @@ def main() -> None:
                         "maxPlayers": 50,
                         "queueDepth": 2,
                         "uploadFailures": 0,
-                        "companionVersion": "3.7.0",
+                        "companionVersion": "3.7.1",
                     },
                 }
             ),
@@ -161,7 +161,7 @@ def main() -> None:
             assert 'id="endstoneSummary"' in html
             assert ".endstone-server-grid" in styles
 
-            print("multi-server-endstone-performance-v7.3.13: PASS")
+            print("multi-server-endstone-performance-v7.3.14: PASS")
         finally:
             try:
                 os.killpg(process.pid, signal.SIGTERM)
