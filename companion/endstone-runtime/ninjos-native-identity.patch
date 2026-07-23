@@ -1,0 +1,45 @@
+diff --git a/src/endstone/runtime/bedrock_hooks/server_network_handler.cpp b/src/endstone/runtime/bedrock_hooks/server_network_handler.cpp
+index 155b1cb..a1dba8a 100644
+--- a/src/endstone/runtime/bedrock_hooks/server_network_handler.cpp
++++ b/src/endstone/runtime/bedrock_hooks/server_network_handler.cpp
+@@ -14,6 +14,11 @@
+ 
+ #include "bedrock/network/server_network_handler.h"
+ 
++#include <algorithm>
++#include <cctype>
++#include <cstdlib>
++#include <ranges>
++#include <string_view>
+ #include <magic_enum/magic_enum.hpp>
+ 
+ #include "bedrock/locale/i18n.h"
+@@ -154,7 +159,27 @@ std::optional<PlayerAuthenticationInfo> ServerNetworkHandler::_validateLoginPack
+         return auth_info;
+     }
+ 
+-    const auto &info = *auth_info;
++    auto &info = *auth_info;
++    const auto *trust_proxy = std::getenv("NINJOS_TRUST_PROXY_IDENTITY");
++    if (info.xuid.empty() && trust_proxy != nullptr && std::string_view{trust_proxy} == "1" &&
++        packet.payload.connection_request->getAuthenticationType() == PlayerAuthenticationType::SelfSigned) {
++        const auto &claims = packet.payload.connection_request->_getRawRequest().getData();
++        const auto version = claims["NinjOSProxyIdentityVersion"].asInt();
++        const auto session_id = claims["NinjOSProxySessionId"].asString();
++        const auto xuid = claims["NinjOSProxyXuid"].asString();
++        const auto uuid = claims["NinjOSProxyUuid"].asString();
++        const auto name = claims["NinjOSProxyName"].asString();
++        const auto login_name = packet.payload.connection_request->getThirdPartyName();
++        const auto valid_xuid = !xuid.empty() && xuid.size() <= 20 &&
++                                std::ranges::all_of(xuid, [](const unsigned char value) { return std::isdigit(value); });
++        if (version == 1 && session_id.size() >= 32 && session_id.size() <= 64 && valid_xuid &&
++            !name.empty() && name == login_name && mce::UUID::canParse(uuid)) {
++            info.xuid = xuid;
++            info.xbox_live_name = name;
++            info.best_display_name = name;
++            info.authenticated_uuid = mce::UUID::fromString(uuid);
++        }
++    }
+     const auto &name = info.xuid.empty() ? packet.payload.connection_request->getThirdPartyName() : info.xbox_live_name;
+     const auto uuid = endstone::core::EndstoneUUID::fromMinecraft(info.authenticated_uuid);
+     const auto &xuid = info.xuid;

@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="7.3.12"
+VERSION="7.3.13"
 COMPANION_VERSION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["companionVersion"])' "${ROOT}/companion/release-metadata.json")"
 COMPANION_ARCHIVE="NinjOS-Endstone-Companion-v${COMPANION_VERSION}-GitHub-Clean.zip"
 VANILLA_BRIDGE_ARCHIVE="NinjOS-Vanilla-Bridge-v${VERSION}.mcpack"
@@ -53,7 +53,7 @@ rsync -a \
   --exclude='/node_modules/minecraft-data/minecraft-data/data/pc/*' \
   "${ROOT}/session-core/" "${STAGE}/runtime/session-core/"
 
-# Ship the reviewed native RakNet prebuild and the Bedrock protocol data used by v7.3.12.
+# Ship the reviewed native RakNet prebuild and the Bedrock protocol data used by v7.3.13.
 SESSION_STAGE="${STAGE}/runtime/session-core"
 find "${SESSION_STAGE}/node_modules" -type d \
   \( -name test -o -name tests -o -name docs -o -name doc -o -name examples -o -name example \

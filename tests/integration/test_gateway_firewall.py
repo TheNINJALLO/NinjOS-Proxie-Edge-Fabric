@@ -187,7 +187,7 @@ live_config_reload_ms=100
             assert recovered["counters"]["incidentExits"] >= 1
             assert request(newcomer, 32166, b"new-after-recovery") == b"K:new-after-recovery"
 
-            print("gateway-v7.3.12: PASS")
+            print("gateway-v7.3.13: PASS")
         finally:
             process.send_signal(signal.SIGTERM)
             try:

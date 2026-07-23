@@ -7,7 +7,7 @@ body:
     id: version
     attributes:
       label: Version
-      placeholder: v7.3.12
+      placeholder: v7.3.13
     validations:
       required: true
   - type: dropdown

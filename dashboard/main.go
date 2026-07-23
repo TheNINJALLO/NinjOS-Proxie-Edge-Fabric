@@ -178,7 +178,7 @@ func main() {
 	runtimeDir, _ := filepath.Abs(env("RUNTIME_DIR", "runtime"))
 	configPath, _ := filepath.Abs(env("EDGE_CONFIG_FILE", filepath.Join("config", "edge-fabric.ini")))
 	gatewayConfigPath, _ := filepath.Abs(env("GATEWAY_CONFIG_FILE", "gateway.conf"))
-	companionSourcePath, _ := filepath.Abs(env("COMPANION_SOURCE_ARCHIVE", "NinjOS-Endstone-Companion-v3.6.1-GitHub-Clean.zip"))
+	companionSourcePath, _ := filepath.Abs(env("COMPANION_SOURCE_ARCHIVE", "NinjOS-Endstone-Companion-v3.7.0-GitHub-Clean.zip"))
 	d := &dashboard{
 		runtimeDir:            runtimeDir,
 		port:                  env("DASHBOARD_PORT", "25571"),

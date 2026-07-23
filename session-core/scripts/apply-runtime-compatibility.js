@@ -49,7 +49,7 @@ const oidcKeys = new Map()
 
 function refreshOidcKeys () {
   https.get(OIDC_JWKS_URL, {
-    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.12' },
+    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.13' },
     timeout: 5000
   }, (response) => {
     let body = ''
