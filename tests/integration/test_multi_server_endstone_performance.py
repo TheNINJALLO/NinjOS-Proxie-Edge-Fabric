@@ -156,10 +156,12 @@ def main() -> None:
             styles = (ROOT / "dashboard" / "public" / "styles.css").read_text(encoding="utf-8")
             assert "renderEndstonePerformance(companions)" in app
             assert "endstone-server-card" in app and "endstone-server-grid" in app
+            assert 'addEventListener("change", () => saveProfileRole' in app
+            assert "if (state.profileRoleSaving.size) return" in app
             assert 'id="endstoneSummary"' in html
             assert ".endstone-server-grid" in styles
 
-            print("multi-server-endstone-performance-v7.3.10: PASS")
+            print("multi-server-endstone-performance-v7.3.11: PASS")
         finally:
             try:
                 os.killpg(process.pid, signal.SIGTERM)

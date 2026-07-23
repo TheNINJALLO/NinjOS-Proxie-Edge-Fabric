@@ -12,6 +12,7 @@ const state = {
   selectedSecret: null,
   users: [],
   profiles: [],
+  profileRoleSaving: new Set(),
   selectedUser: null,
   packetsPaused: false,
   traffic: [],
@@ -471,7 +472,7 @@ function renderState(data) {
       ? "Drain Mode"
       : incident.active
         ? "Incident Mode"
-        : `Online · v${data.version || "7.3.10"}`;
+        : `Online · v${data.version || "7.3.11"}`;
   $("#modeBadge").style.color =
     gateway.maintenance || gateway.drain || incident.active
       ? "var(--amber)"
@@ -1033,6 +1034,7 @@ function renderCompanionFleet(companions) {
 }
 
 async function refreshPresence() {
+  if (state.profileRoleSaving.size) return;
   if (!$("#view-players")?.classList.contains("active")) return;
   try {
     const data = await api("/api/presence");
@@ -1090,12 +1092,14 @@ async function refreshPresence() {
         })
         .join("") ||
       '<tr><td colspan="7">No XUID profiles recorded yet.</td></tr>';
-    $$(".profile-save").forEach((button) => button.addEventListener("click", async () => {
-      const profile = state.profiles.find((item) => String(item.xuid) === button.dataset.xuid);
-      const selector = $(`.profile-role[data-xuid="${CSS.escape(button.dataset.xuid)}"]`);
+    const saveProfileRole = async (xuid) => {
+      const profile = state.profiles.find((item) => String(item.xuid) === xuid);
+      const selector = $(`.profile-role[data-xuid="${CSS.escape(xuid)}"]`);
       if (!profile || !selector) return;
       let access = {};
       try { access = JSON.parse(profile.access_json || "{}"); } catch (_) {}
+      state.profileRoleSaving.add(xuid);
+      selector.disabled = true;
       try {
         await api("/api/profiles/access", {
           method: "POST",
@@ -1105,10 +1109,19 @@ async function refreshPresence() {
             notes: profile.notes || "",
           }),
         });
+        profile.network_role = selector.value;
         toast(`Saved ${profile.gamertag || profile.xuid} as ${selector.value}. Rejoin Full Proxy to apply commands and permissions.`);
-        await refreshPresence();
-      } catch (error) { toast(error.message); }
-    }));
+      } catch (error) {
+        selector.value = profile.network_role || "member";
+        toast(error.message);
+      } finally {
+        state.profileRoleSaving.delete(xuid);
+        selector.disabled = false;
+      }
+      await refreshPresence();
+    };
+    $$(".profile-role").forEach((selector) => selector.addEventListener("change", () => saveProfileRole(selector.dataset.xuid)));
+    $$(".profile-save").forEach((button) => button.addEventListener("click", () => saveProfileRole(button.dataset.xuid)));
   } catch (_) {}
 }
 
@@ -1908,7 +1921,7 @@ $("#downloadSupportBundle").addEventListener("click", async () => {
     const blob = await response.blob();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "NinjOS-Edge-Fabric-v7.3.10-Support.zip";
+    link.download = "NinjOS-Edge-Fabric-v7.3.11-Support.zip";
     link.click();
     URL.revokeObjectURL(link.href);
     toast("Redacted support bundle generated");

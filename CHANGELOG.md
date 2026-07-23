@@ -1,5 +1,17 @@
 # Changelog
 
+## 7.3.11 - 2026-07-23
+
+### Network player role persistence
+
+- Changed the Network XUID Profiles role selector to save immediately when an
+  owner or administrator chooses a new role.
+- Paused the 2.5-second player-table refresh while a role update is in flight so
+  it cannot replace the selection with stale `member` data.
+- Disabled the active selector during the request, retained the selected role
+  after success, and restored the stored value with a visible error on failure.
+- Added dashboard regression coverage for role autosave and refresh protection.
+
 ## 7.3.10 - 2026-07-23
 
 ### Full Proxy player roles and plugin commands
