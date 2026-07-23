@@ -1,5 +1,19 @@
 # Changelog
 
+## 7.3.8 - 2026-07-23
+
+### Lossless Full Proxy gameplay forwarding
+
+- Forwarded native gameplay packets using their original decrypted bytes instead
+  of decoding and serializing them through an older hotfix schema.
+- Continued to terminate and re-establish encryption on each side of Full Proxy,
+  preserving its routing, identity, inspection, and protection features.
+- Re-encoded packets only when an explicit reviewed Protocol Weave translation
+  actually changes their decoded fields.
+- Preserved proxy command interception, client-cache handling, packet inspection,
+  and pre-join packet queues on the hybrid raw/decoded relay path.
+- Added dependency-patch regression checks for bidirectional raw forwarding.
+
 ## 7.3.7 - 2026-07-22
 
 ### Reliable Endstone identity and permission restoration

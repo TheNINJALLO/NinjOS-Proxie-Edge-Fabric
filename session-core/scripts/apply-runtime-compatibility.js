@@ -49,7 +49,7 @@ const oidcKeys = new Map()
 
 function refreshOidcKeys () {
   https.get(OIDC_JWKS_URL, {
-    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.7' },
+    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.8' },
     timeout: 5000
   }, (response) => {
     let body = ''
@@ -133,6 +133,147 @@ replaceOnce(
       )
       debug(this.address, e)`,
   'Downstream authentication exception:'
+)
+
+// Relay terminates encryption at both sides, but native gameplay packets do not
+// need to be decoded and serialized again. Preserve their original decrypted
+// bytes unless an explicit Protocol Weave translator changed the decoded fields.
+// This avoids corrupting hotfix packet layouts that share protocol 1001 while
+// the upstream schema package catches up.
+const relay = packageFile('bedrock-protocol', 'src/relay.js')
+replaceOnce(
+  relay,
+  `    for (const packet of this.downQ) {
+      const des = this.server.deserializer.parsePacketBuffer(packet)
+      this.write(des.data.name, des.data.params)
+    }`,
+  `    for (const packet of this.downQ) {
+      this.sendBuffer(packet)
+    }`,
+  'this.sendBuffer(packet) // Ninj-OS lossless downstream queue'
+)
+replaceOnce(
+  relay,
+  '      this.sendBuffer(packet)',
+  '      this.sendBuffer(packet) // Ninj-OS lossless downstream queue',
+  'this.sendBuffer(packet) // Ninj-OS lossless downstream queue'
+)
+replaceOnce(
+  relay,
+  `      const des = this.server.deserializer.parsePacketBuffer(e)
+      if (des.data.name === 'client_cache_status') {
+        // Currently not working, force off the chunk cache
+      } else {
+        this.upstream.write(des.data.name, des.data.params)
+      }`,
+  `      const des = this.server.deserializer.parsePacketBuffer(e)
+      if (des.data.name === 'client_cache_status') {
+        // Currently not working, force off the chunk cache
+      } else {
+        this.upstream.sendBuffer(e)
+      }`,
+  'this.upstream.sendBuffer(e)'
+)
+replaceOnce(
+  relay,
+  `      const des = this.server.deserializer.parsePacketBuffer(e)
+      if (des.data.name === 'client_cache_status') {
+        // Currently not working, force off the chunk cache
+      } else {
+        this.upstream.sendBuffer(e)
+      }`,
+  `      // Preserve packets collected during the short upstream handshake.
+      this.upstream.sendBuffer(e) // Ninj-OS lossless upstream queue`,
+  'this.upstream.sendBuffer(e) // Ninj-OS lossless upstream queue'
+)
+replaceOnce(
+  relay,
+  `    } catch (e) {
+      this.server.deserializer.dumpFailedBuffer(packet, this.connection.address)
+      console.error(this.connection.address, e)
+
+      if (!this.options.omitParseErrors) {
+        this.disconnect('Server packet parse error')
+      }
+
+      return
+    }`,
+  `    } catch (e) {
+      this.server.deserializer.dumpFailedBuffer(packet, this.connection.address)
+      console.error(this.connection.address, e)
+      // Inspection is best-effort. A schema lag must not break gameplay.
+      this.sendBuffer(packet)
+      return
+    }`,
+  'A schema lag must not break gameplay.'
+)
+replaceOnce(
+  relay,
+  `      if (!this.upstream) {
+        const des = this.server.deserializer.parsePacketBuffer(packet)
+        this.downInLog('Got downstream connected packet but upstream is not connected yet, added to q', des)
+        this.upQ.push(packet) // Put into a queue
+        return
+      }`,
+  `      if (!this.upstream) {
+        this.downInLog('Got downstream connected packet but upstream is not connected yet, added raw packet to q')
+        this.upQ.push(packet) // Put into a queue
+        return
+      }`,
+  'added raw packet to q'
+)
+replaceOnce(
+  relay,
+  `      // TODO: If we fail to parse a packet, proxy it raw and log an error
+      const des = this.server.deserializer.parsePacketBuffer(packet)`,
+  `      let des
+      try {
+        des = this.server.deserializer.parsePacketBuffer(packet)
+      } catch (error) {
+        // The decoder wrapper already recorded the failure for Protocol Weave.
+        // Forward the original bytes so schema lag remains non-disruptive.
+        this.upstream.sendBuffer(packet)
+        return
+      }`,
+  'schema lag remains non-disruptive.'
+)
+replaceOnce(
+  relay,
+  `      this.queue(name, params)
+    }
+
+    if (this.chunkSendCache.length > 0 && this.sentStartGame) {
+      for (const entry of this.chunkSendCache) {
+        this.queue('level_chunk', entry)
+      }`,
+  `      if (des.ninjosReencode) this.queue(name, params)
+      else this.sendBuffer(packet)
+    }
+
+    if (this.chunkSendCache.length > 0 && this.sentStartGame) {
+      for (const entry of this.chunkSendCache) {
+        if (entry.reencode) this.queue('level_chunk', entry.params)
+        else this.sendBuffer(entry.packet)
+      }`,
+  'if (des.ninjosReencode) this.queue(name, params)'
+)
+replaceOnce(
+  relay,
+  '        this.chunkSendCache.push(params)',
+  '        this.chunkSendCache.push({ packet, params, reencode: des.ninjosReencode === true })',
+  'reencode: des.ninjosReencode === true'
+)
+replaceOnce(
+  relay,
+  `          // Emit the packet as-is back to the upstream server
+          this.downInLog('Relaying', des.data)
+          this.upstream.queue(des.data.name, des.data.params)`,
+  `          // Preserve the original decrypted bytes unless an explicit
+          // translator changed the decoded packet.
+          this.downInLog('Relaying', des.data)
+          if (des.ninjosReencode) this.upstream.queue(des.data.name, des.data.params)
+          else this.upstream.sendBuffer(packet)`,
+  'if (des.ninjosReencode) this.upstream.queue'
 )
 
 const protocol = packageFile('minecraft-data', 'minecraft-data/data/bedrock/1.26.30/protocol.json')

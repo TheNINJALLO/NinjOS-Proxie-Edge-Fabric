@@ -1,5 +1,14 @@
 # Troubleshooting
 
+## Movement works, but break, place, use, or interact disconnects
+
+Upgrade Edge Fabric to v7.3.8 or newer. Earlier Full Proxy builds decoded and
+serialized every gameplay packet, which could alter hotfix packet layouts even
+when the client and backend both used protocol 1001. The lossless relay in v7.3.8
+forwards original decrypted packet bytes unless a reviewed translator explicitly
+changes the packet. If a disconnect remains, retain the Session Core error and
+the matching Protocol Inspector decode-failure record.
+
 ## Configuration or Secret Vault changes do not save
 
 v7.3.0 fixes a lock inversion that could leave a save request waiting indefinitely
