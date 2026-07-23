@@ -28,7 +28,7 @@ function writeRuntimeState () {
   const state = {
     timestamp: Date.now(),
     engine: 'session-core',
-    version: '7.3.9',
+    version: '7.3.10',
     protocolPacks: protocolWeave?.catalog() || [],
     protocolInspection: protocolWeave?.inspection() || { enabled: false },
     backends: [...active.values()].map(({ backend, relay, codecProtocol }) => ({
@@ -195,7 +195,7 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.9 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.10 · Full Proxy Session Core' })
   }
   return true
 }
@@ -330,11 +330,14 @@ function makeRelay (backend) {
       warn(`${backend.id}: downstream error:`, error?.stack || error?.message || String(error))
     })
     player.on('serverbound', ({ name, params }, descriptor) => {
+      const proxyIntercepted = name === 'command_request'
+        ? handleProxyCommand(backend, player, params, descriptor)
+        : false
       descriptor.ninjosReencode = inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'serverbound', name, params, {
         rawBuffer: descriptor?.fullBuffer,
-        serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
+        serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams }),
+        proxyIntercepted
       })
-      if (name === 'command_request') handleProxyCommand(backend, player, params, descriptor)
     })
     player.on('clientbound', ({ name, params }, descriptor) => {
       descriptor.ninjosReencode = inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'clientbound', name, params, {

@@ -303,6 +303,12 @@ func (d *dashboard) handleProfileAccess(w http.ResponseWriter, r *http.Request) 
 	if body.Role == "" {
 		body.Role = "member"
 	}
+	body.Role = strings.ToLower(strings.TrimSpace(body.Role))
+	validRole := map[string]bool{"member": true, "moderator": true, "operator": true, "admin": true, "owner": true}
+	if !validRole[body.Role] {
+		writeJSON(w, 400, map[string]string{"error": "role must be member, moderator, operator, admin, or owner"})
+		return
+	}
 	if body.Access == nil {
 		body.Access = map[string]bool{}
 	}

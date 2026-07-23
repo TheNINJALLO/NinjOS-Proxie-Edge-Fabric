@@ -68,8 +68,19 @@ function redactValue (value, depth = 0) {
   return output
 }
 
-function summarizePacket (name, params) {
-  if (name !== 'player_auth_input' || !params || typeof params !== 'object') return null
+function summarizePacket (name, params, context = {}) {
+  if (!params || typeof params !== 'object') return null
+  if (name === 'command_request') {
+    const commandName = String(params.command || '').trim().replace(/^\//, '').split(/\s+/, 1)[0].toLowerCase()
+    return {
+      category: 'command',
+      commandName,
+      originType: String(params.origin?.type || 'unknown'),
+      internal: params.internal === true,
+      proxyIntercepted: context.proxyIntercepted === true
+    }
+  }
+  if (name !== 'player_auth_input') return null
   const flags = params.input_data && typeof params.input_data === 'object'
     ? Object.entries(params.input_data).filter(([, enabled]) => enabled === true).map(([flag]) => flag)
     : []
@@ -219,7 +230,8 @@ class ProtocolWeave {
       stats.packetNames.add(`${direction}:${name}`)
     }
     if (this.captureEnabled) this.observe(pack, backendId, direction, name, params, translated, {
-      decodedBefore, rawBuffer, packetId, sensitive, roundTrip
+      decodedBefore, rawBuffer, packetId, sensitive, roundTrip,
+      proxyIntercepted: context.proxyIntercepted === true
     })
     return translated
   }
@@ -237,7 +249,7 @@ class ProtocolWeave {
       fields: params && typeof params === 'object' ? Object.keys(params).sort() : [],
       captureTiers: ['metadata'], sensitive: context.sensitive === true
     }
-    const semantic = summarizePacket(name, params)
+    const semantic = summarizePacket(name, params, context)
     if (semantic) record.semantic = semantic
     if (!context.sensitive && ['decoded', 'full'].includes(this.captureMode)) {
       record.decoded = context.decodedBefore

@@ -221,7 +221,7 @@ def main() -> None:
             assert protocol_packets["catalog"]["source"] == "Mojang/bedrock-protocol-docs"
 
             _, state = request("/api/state", token=session)
-            assert state["version"] == "7.3.9"
+            assert state["version"] == "7.3.10"
             assert state["management"]["sqliteLedger"] is True
             zoo_health = next(item for item in state["gateway"]["backends"] if item["name"] == "zoo")
             assert zoo_health["healthy"] is True
@@ -369,6 +369,31 @@ def main() -> None:
             _, profiles = request("/api/profiles", token=session)
             assert any(row["xuid"] == "2535000000000001" and row["current_server"] == "zoo" for row in profiles["profiles"])
 
+            status, updated_profile = request("/api/profiles/access", "POST", {
+                "xuid": "2535000000000001",
+                "role": "operator",
+                "banned": False,
+                "access": {},
+                "notes": "Full Proxy plugin command test",
+            }, session)
+            assert status == 200
+            assert updated_profile["updated"] is True
+
+            try:
+                request("/api/profiles/access", "POST", {
+                    "xuid": "2535000000000001",
+                    "role": "superuser",
+                    "banned": False,
+                    "access": {},
+                }, session)
+                raise AssertionError("Invalid network role unexpectedly succeeded")
+            except urllib.error.HTTPError as error:
+                assert error.code == 400
+                assert "role" in json.loads(error.read())["error"].lower()
+
+            _, profiles = request("/api/profiles", token=session)
+            assert any(row["xuid"] == "2535000000000001" and row["network_role"] == "operator" for row in profiles["profiles"])
+
             _, capabilities = request("/api/capabilities", token=session)
             assert capabilities["fleet"][0]["compatible"] is True
 
@@ -393,7 +418,7 @@ def main() -> None:
                 audit_count = database.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
                 assert audit_count >= 1
 
-            print("dashboard-v7.3.9: PASS")
+            print("dashboard-v7.3.10: PASS")
         finally:
             process.terminate()
             try:

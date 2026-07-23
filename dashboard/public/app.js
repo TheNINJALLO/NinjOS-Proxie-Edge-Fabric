@@ -11,6 +11,7 @@ const state = {
   companionManager: null,
   selectedSecret: null,
   users: [],
+  profiles: [],
   selectedUser: null,
   packetsPaused: false,
   traffic: [],
@@ -470,7 +471,7 @@ function renderState(data) {
       ? "Drain Mode"
       : incident.active
         ? "Incident Mode"
-        : `Online · v${data.version || "7.3.9"}`;
+        : `Online · v${data.version || "7.3.10"}`;
   $("#modeBadge").style.color =
     gateway.maintenance || gateway.drain || incident.active
       ? "var(--amber)"
@@ -1059,8 +1060,10 @@ async function refreshPresence() {
       '<tr><td colspan="6">No player presence has been reported.</td></tr>';
 
     const profiles = await api("/api/profiles?limit=1000");
+    state.profiles = profiles.profiles || [];
     $("#networkProfileCount").textContent =
       `${profiles.profiles.length} profiles`;
+    const canManageProfiles = (roleRank[state.data?.principal?.role] || 0) >= roleRank.admin;
     $("#networkProfilesTable").innerHTML =
       profiles.profiles
         .map((item) => {
@@ -1076,10 +1079,36 @@ async function refreshPresence() {
             : denied.length
               ? `Denied: ${denied.join(", ")}`
               : "Allowed";
-          return `<tr><td><b>${esc(item.gamertag || "—")}</b></td><td><code>${esc(item.xuid || "—")}</code></td><td>${esc(item.network_role || "member")}</td><td>${esc(item.current_server || "—")}</td><td><span class="status ${Number(item.network_banned) ? "bad" : "good"}">${esc(accessLabel)}</span></td><td>${fmtTime(item.last_seen)}</td></tr>`;
+          const currentRole = item.network_role || "member";
+          const roleEditor = canManageProfiles
+            ? `<select class="profile-role" data-xuid="${esc(item.xuid || "")}">${["member", "moderator", "operator", "admin", "owner"].map((role) => `<option value="${role}"${role === currentRole ? " selected" : ""}>${role}</option>`).join("")}</select>`
+            : esc(currentRole);
+          const action = canManageProfiles
+            ? `<button class="ghost profile-save" data-xuid="${esc(item.xuid || "")}">Save role</button>`
+            : "—";
+          return `<tr><td><b>${esc(item.gamertag || "—")}</b></td><td><code>${esc(item.xuid || "—")}</code></td><td>${roleEditor}</td><td>${esc(item.current_server || "—")}</td><td><span class="status ${Number(item.network_banned) ? "bad" : "good"}">${esc(accessLabel)}</span></td><td>${fmtTime(item.last_seen)}</td><td>${action}</td></tr>`;
         })
         .join("") ||
-      '<tr><td colspan="6">No XUID profiles recorded yet.</td></tr>';
+      '<tr><td colspan="7">No XUID profiles recorded yet.</td></tr>';
+    $$(".profile-save").forEach((button) => button.addEventListener("click", async () => {
+      const profile = state.profiles.find((item) => String(item.xuid) === button.dataset.xuid);
+      const selector = $(`.profile-role[data-xuid="${CSS.escape(button.dataset.xuid)}"]`);
+      if (!profile || !selector) return;
+      let access = {};
+      try { access = JSON.parse(profile.access_json || "{}"); } catch (_) {}
+      try {
+        await api("/api/profiles/access", {
+          method: "POST",
+          body: JSON.stringify({
+            xuid: String(profile.xuid), role: selector.value,
+            banned: Boolean(Number(profile.network_banned)), access,
+            notes: profile.notes || "",
+          }),
+        });
+        toast(`Saved ${profile.gamertag || profile.xuid} as ${selector.value}. Rejoin Full Proxy to apply commands and permissions.`);
+        await refreshPresence();
+      } catch (error) { toast(error.message); }
+    }));
   } catch (_) {}
 }
 
@@ -1556,7 +1585,9 @@ async function showPacket(packet) {
     detail("Bytes", packet.bytes ?? packet.size ?? packet.payloadBytes ?? "—"),
     detail("Action", packet.action || "forward"),
     detail("Gameplay summary", packet.semantic
-      ? `${packet.semantic.blockActionCount || 0} block action(s)${packet.semantic.blockActions?.length ? `: ${packet.semantic.blockActions.join(", ")}` : ""}`
+      ? packet.semantic.category === "command"
+        ? `/${packet.semantic.commandName || "unknown"} · ${packet.semantic.proxyIntercepted ? "handled by proxy" : "forwarded to backend"}`
+        : `${packet.semantic.blockActionCount || 0} block action(s)${packet.semantic.blockActions?.length ? `: ${packet.semantic.blockActions.join(", ")}` : ""}`
       : "—"),
     detail("Pack", packet.pack || "—"),
     detail("Sensitive", packet.sensitive ? "Protected — values withheld" : "No sensitive classification"),
@@ -1877,7 +1908,7 @@ $("#downloadSupportBundle").addEventListener("click", async () => {
     const blob = await response.blob();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "NinjOS-Edge-Fabric-v7.3.9-Support.zip";
+    link.download = "NinjOS-Edge-Fabric-v7.3.10-Support.zip";
     link.click();
     URL.revokeObjectURL(link.href);
     toast("Redacted support bundle generated");

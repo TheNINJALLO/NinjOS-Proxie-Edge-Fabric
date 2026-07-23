@@ -87,6 +87,12 @@ assert.deepStrictEqual(summarizePacket('player_auth_input', {
   blockActionCount: 2, blockActions: ['start_break', 'continue_break'],
   hasItemInteraction: true, hasItemStackRequest: false
 })
+assert.deepStrictEqual(summarizePacket('command_request', {
+  command: '/example secret-argument', origin: { type: 'player' }, internal: false
+}, { proxyIntercepted: false }), {
+  category: 'command', commandName: 'example', originType: 'player',
+  internal: false, proxyIntercepted: false
+})
 
 const fallbackWeave = new ProtocolWeave({
   packDirectory: path.join(root, 'missing-packs'),

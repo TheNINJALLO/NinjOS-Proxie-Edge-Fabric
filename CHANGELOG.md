@@ -1,5 +1,20 @@
 # Changelog
 
+## 7.3.10 - 2026-07-23
+
+### Full Proxy player roles and plugin commands
+
+- Added an owner/admin role editor to Network XUID Profiles so Minecraft roles
+  can be managed without calling the control-plane API manually.
+- Kept dashboard account authorization separate from Minecraft player roles and
+  documented the required disconnect/rejoin after changing a network role.
+- Rejected unknown role values at the API boundary instead of persisting an
+  unusable permission state.
+- Added privacy-safe `CommandRequest` inspection showing the command name and
+  whether Ninj-OS intercepted it or forwarded it unchanged to Endstone.
+- Added integration coverage for valid and invalid network-role updates and
+  Session Core coverage for command diagnostics that never retain arguments.
+
 ## 7.3.9 - 2026-07-23
 
 ### Mojang packet catalog and block-action diagnostics
