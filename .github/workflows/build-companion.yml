@@ -52,6 +52,8 @@ jobs:
             > /etc/apt/sources.list.d/llvm-18.list
           apt-get update
           apt-get install -y clang-18 libc++-18-dev libc++abi-18-dev lld-18
+          ln -sf /usr/bin/clang-18 /usr/local/bin/clang
+          ln -sf /usr/bin/clang++-18 /usr/local/bin/clang++
 
       - name: Generate companion documentation
         run: python3 companion/scripts/generate-documentation.py
