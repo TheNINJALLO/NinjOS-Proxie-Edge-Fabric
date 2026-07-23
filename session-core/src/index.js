@@ -28,7 +28,7 @@ function writeRuntimeState () {
   const state = {
     timestamp: Date.now(),
     engine: 'session-core',
-    version: '7.3.7',
+    version: '7.3.8',
     protocolPacks: protocolWeave?.catalog() || [],
     protocolInspection: protocolWeave?.inspection() || { enabled: false },
     backends: [...active.values()].map(({ backend, relay, codecProtocol }) => ({
@@ -195,20 +195,21 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.7 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.8 · Full Proxy Session Core' })
   }
   return true
 }
 
 function inspectPacketSafely (pack, backendId, direction, name, params, context) {
   try {
-    protocolWeave?.process(pack, backendId, direction, name, params, context)
+    return protocolWeave?.process(pack, backendId, direction, name, params, context) === true
   } catch (error) {
     const now = Date.now()
     if (now - lastInspectionWarning >= 5000) {
       warn(`Protocol inspection error (${backendId} ${direction} ${name}); forwarding unchanged:`, error.message)
       lastInspectionWarning = now
     }
+    return false
   }
 }
 
@@ -329,14 +330,14 @@ function makeRelay (backend) {
       warn(`${backend.id}: downstream error:`, error?.stack || error?.message || String(error))
     })
     player.on('serverbound', ({ name, params }, descriptor) => {
-      inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'serverbound', name, params, {
+      descriptor.ninjosReencode = inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'serverbound', name, params, {
         rawBuffer: descriptor?.fullBuffer,
         serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
       })
       if (name === 'command_request') handleProxyCommand(backend, player, params, descriptor)
     })
     player.on('clientbound', ({ name, params }, descriptor) => {
-      inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'clientbound', name, params, {
+      descriptor.ninjosReencode = inspectPacketSafely(player.__ninjosProtocolPack, backend.id, 'clientbound', name, params, {
         rawBuffer: descriptor?.fullBuffer,
         serialize: (packetName, packetParams) => relay.serializer.createPacketBuffer({ name: packetName, params: packetParams })
       })
