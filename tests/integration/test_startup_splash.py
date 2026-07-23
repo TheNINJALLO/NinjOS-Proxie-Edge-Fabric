@@ -79,7 +79,7 @@ def main() -> None:
             r"|_| \_|___|_| \_|\___/        \___/|____/",
             "P R O X I E",
             "Verified Identity Gateway",
-            "Version         : v7.3.8",
+            "Version         : v7.3.9",
             "FIRST-RUN OWNER SETUP REQUIRED",
             "Setup code:",
             "Gateway Mode    : Universal dual-mode Bedrock edge",
@@ -99,7 +99,7 @@ def main() -> None:
         if " _   _ _       _        ___  ____" in output:
             raise AssertionError(f"Legacy NINI-OS splash returned. Output:\n{output}")
 
-        print("startup-splash-v7.3.8: PASS")
+        print("startup-splash-v7.3.9: PASS")
 
 
 if __name__ == "__main__":

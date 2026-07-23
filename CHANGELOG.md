@@ -1,5 +1,19 @@
 # Changelog
 
+## 7.3.9 - 2026-07-23
+
+### Mojang packet catalog and block-action diagnostics
+
+- Generated a 229-entry packet ID/name catalog from Mojang's official Bedrock
+  protocol documentation at a recorded source commit.
+- Added catalog source, Minecraft version, protocol version, and packet count to
+  Packet Inspector responses and the dashboard summary.
+- Replaced generic unknown labels with Mojang names when a numeric ID is known.
+- Added safe `PlayerAuthInput` summaries for input flags, block-action counts,
+  block-action names, item interactions, stack requests, and client ticks.
+- Documented how to distinguish missing client block actions from backend game
+  mode, spawn-protection, or permission-plugin rejection.
+
 ## 7.3.8 - 2026-07-23
 
 ### Lossless Full Proxy gameplay forwarding

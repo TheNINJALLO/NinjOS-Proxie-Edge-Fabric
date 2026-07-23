@@ -470,7 +470,7 @@ function renderState(data) {
       ? "Drain Mode"
       : incident.active
         ? "Incident Mode"
-        : `Online · v${data.version || "7.3.8"}`;
+        : `Online · v${data.version || "7.3.9"}`;
   $("#modeBadge").style.color =
     gateway.maintenance || gateway.drain || incident.active
       ? "var(--amber)"
@@ -1499,7 +1499,11 @@ async function refreshPackets() {
     const tierSummary = Object.entries(data.tiers || {})
       .map(([tier, count]) => `${tier.replaceAll("_", " ")} ${count}`)
       .join(" · ");
-    $("#packetStats").textContent = `${data.count} records shown${tierSummary ? ` · ${tierSummary}` : ""}`;
+    const catalog = data.catalog || {};
+    const catalogSummary = catalog.packetCount
+      ? `${catalog.packetCount} Mojang packet names · Minecraft ${(catalog.minecraftVersions || []).join(", ") || "documented"} · protocol ${(catalog.protocolVersions || []).join(", ") || "documented"}`
+      : "Packet catalog unavailable";
+    $("#packetStats").textContent = `${data.count} records shown${tierSummary ? ` · ${tierSummary}` : ""} · ${catalogSummary}`;
     $("#packetsTable").innerHTML =
       data.records
         .map((packet, index) => {
@@ -1546,9 +1550,14 @@ async function showPacket(packet) {
     .join("");
   $("#packetDetailSummary").innerHTML = [
     detail("Packet ID", packet.packetId ?? "—"),
+    detail("Name source", packet.packetNameSource || "Decoded schema"),
+    detail("Decoded name", packet.decodedPacketName || "—"),
     detail("Protocol", packet.protocol ?? "—"),
     detail("Bytes", packet.bytes ?? packet.size ?? packet.payloadBytes ?? "—"),
     detail("Action", packet.action || "forward"),
+    detail("Gameplay summary", packet.semantic
+      ? `${packet.semantic.blockActionCount || 0} block action(s)${packet.semantic.blockActions?.length ? `: ${packet.semantic.blockActions.join(", ")}` : ""}`
+      : "—"),
     detail("Pack", packet.pack || "—"),
     detail("Sensitive", packet.sensitive ? "Protected — values withheld" : "No sensitive classification"),
   ].join("");
@@ -1868,7 +1877,7 @@ $("#downloadSupportBundle").addEventListener("click", async () => {
     const blob = await response.blob();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "NinjOS-Edge-Fabric-v7.3.8-Support.zip";
+    link.download = "NinjOS-Edge-Fabric-v7.3.9-Support.zip";
     link.click();
     URL.revokeObjectURL(link.href);
     toast("Redacted support bundle generated");

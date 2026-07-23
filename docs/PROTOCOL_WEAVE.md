@@ -66,6 +66,26 @@ failure records. Opening a row separates the summary, redacted decoded fields,
 post-translation fields, hexadecimal/ASCII wire view, round-trip results, and
 original inspection record.
 
+### Official packet names and block-action diagnostics
+
+The packet catalog is generated from Mojang's official
+`bedrock-protocol-docs` JSON metadata. The inspector reports the source commit,
+documented Minecraft and protocol versions, and packet count. An unknown failure
+label is replaced when its numeric ID exists in the catalog. The generated file
+contains factual IDs and names only, not Mojang's packet schemas.
+
+Regenerate it from a local checkout with:
+
+```bash
+python3 scripts/import-mojang-packet-catalog.py /path/to/bedrock-protocol-docs
+```
+
+`PlayerAuthInput` (ID 144) receives a safe metadata summary containing its input
+flags, block-action count, block-action names, and item-interaction flags. If a
+break attempt reports no block actions, inspect the client input permissions and
+game mode sent by the backend. If actions are present, inspect backend protection,
+spawn protection, game mode, and permission-plugin decisions.
+
 ## Adding a future protocol
 
 1. Copy the pack-format example into a new numeric directory.

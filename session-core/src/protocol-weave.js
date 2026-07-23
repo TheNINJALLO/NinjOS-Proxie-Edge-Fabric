@@ -68,6 +68,25 @@ function redactValue (value, depth = 0) {
   return output
 }
 
+function summarizePacket (name, params) {
+  if (name !== 'player_auth_input' || !params || typeof params !== 'object') return null
+  const flags = params.input_data && typeof params.input_data === 'object'
+    ? Object.entries(params.input_data).filter(([, enabled]) => enabled === true).map(([flag]) => flag)
+    : []
+  const actions = Array.isArray(params.block_action)
+    ? params.block_action.map((entry) => String(entry?.action || 'unknown'))
+    : []
+  return {
+    category: 'player_input',
+    clientTick: typeof params.tick === 'bigint' ? params.tick.toString() : params.tick,
+    inputFlags: flags,
+    blockActionCount: actions.length,
+    blockActions: actions,
+    hasItemInteraction: params.transaction != null,
+    hasItemStackRequest: params.item_stack_request != null
+  }
+}
+
 function validatePack (pack, source) {
   if (pack.schemaVersion !== 1) throw new Error(`${source}: unsupported schemaVersion`)
   if (!Number.isInteger(pack.protocol) || pack.protocol <= 0) throw new Error(`${source}: protocol must be a positive integer`)
@@ -218,6 +237,8 @@ class ProtocolWeave {
       fields: params && typeof params === 'object' ? Object.keys(params).sort() : [],
       captureTiers: ['metadata'], sensitive: context.sensitive === true
     }
+    const semantic = summarizePacket(name, params)
+    if (semantic) record.semantic = semantic
     if (!context.sensitive && ['decoded', 'full'].includes(this.captureMode)) {
       record.decoded = context.decodedBefore
       if (translated) record.translatedDecoded = redactValue(params)
@@ -341,4 +362,4 @@ class ProtocolWeave {
   }
 }
 
-module.exports = { ProtocolWeave, redactValue, validatePack, parsePacketId, firstMismatch }
+module.exports = { ProtocolWeave, redactValue, validatePack, parsePacketId, firstMismatch, summarizePacket }

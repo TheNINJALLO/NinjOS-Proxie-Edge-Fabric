@@ -212,11 +212,16 @@ def main() -> None:
                 "/api/packets?layer=protocol&tier=wire&packetId=77&details=1", token=session
             )
             assert protocol_packets["count"] == 1, protocol_packets
+            assert protocol_packets["records"][0]["packetName"] == "CommandRequest"
+            assert protocol_packets["records"][0]["packetNameSource"] == "Mojang/bedrock-protocol-docs"
+            assert protocol_packets["records"][0]["decodedPacketName"] == "fixture_packet"
             assert protocol_packets["records"][0]["decoded"]["safe"] is True
             assert protocol_packets["tiers"]["round_trip"] == 1
+            assert protocol_packets["catalog"]["packetCount"] >= 200
+            assert protocol_packets["catalog"]["source"] == "Mojang/bedrock-protocol-docs"
 
             _, state = request("/api/state", token=session)
-            assert state["version"] == "7.3.8"
+            assert state["version"] == "7.3.9"
             assert state["management"]["sqliteLedger"] is True
             zoo_health = next(item for item in state["gateway"]["backends"] if item["name"] == "zoo")
             assert zoo_health["healthy"] is True
@@ -388,7 +393,7 @@ def main() -> None:
                 audit_count = database.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
                 assert audit_count >= 1
 
-            print("dashboard-v7.3.8: PASS")
+            print("dashboard-v7.3.9: PASS")
         finally:
             process.terminate()
             try:

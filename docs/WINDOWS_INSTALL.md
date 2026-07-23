@@ -54,7 +54,7 @@ Forward public UDP listeners to the Windows host. Do not forward the private bac
 For a Mojang BDS running directly on Windows, use:
 
 ```text
-NinjOS-Vanilla-Agent-Windows-v7.3.8.zip
+NinjOS-Vanilla-Agent-Windows-v7.3.9.zip
 ```
 
 Edit `agent.json`, then run:
