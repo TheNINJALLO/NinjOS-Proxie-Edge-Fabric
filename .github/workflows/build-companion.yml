@@ -51,7 +51,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" \
             > /etc/apt/sources.list.d/llvm-18.list
           apt-get update
-          apt-get install -y clang-18 libc++-18-dev libc++abi-18-dev lld-18
+          apt-get install -y clang-18 libc++-18-dev libc++abi-18-dev libunwind-18-dev lld-18
           ln -sf /usr/bin/clang-18 /usr/local/bin/clang
           ln -sf /usr/bin/clang++-18 /usr/local/bin/clang++
 
