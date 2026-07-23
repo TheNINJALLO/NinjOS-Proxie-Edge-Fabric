@@ -8,6 +8,11 @@ permissions. In **Network Players > Network XUID Profiles**, select `operator`
 for the player, save, then fully disconnect and rejoin through the proxy. Role
 changes are included in the next signed identity grant.
 
+In v7.3.11 and newer, changing the dropdown saves immediately and temporarily
+pauses the live player-table refresh. If the selector returns to its previous
+value, read the dashboard error notification and verify the signed-in dashboard
+account is an owner or administrator.
+
 To trace a command, open Packet Inspector and filter for packet ID `77`
 (`CommandRequest`). The Gameplay summary records only the command name, whether
 it was handled by Ninj-OS, and whether it was forwarded to the backend. Command
@@ -21,15 +26,15 @@ permission node or game-mode requirements.
 
 ## Movement works, but break, place, use, or interact disconnects
 
-Upgrade Edge Fabric to v7.3.10 or newer. Earlier Full Proxy builds decoded and
+Upgrade Edge Fabric to v7.3.11 or newer. Earlier Full Proxy builds decoded and
 serialized every gameplay packet, which could alter hotfix packet layouts even
-when the client and backend both used protocol 1001. The lossless relay in v7.3.10
+when the client and backend both used protocol 1001. The lossless relay in v7.3.11
 forwards original decrypted packet bytes unless a reviewed translator explicitly
 changes the packet. If a disconnect remains, retain the Session Core error and
 the matching Protocol Inspector decode-failure record.
 
 If the player remains connected but the block does not break, open Packet
-Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.10 or newer,
+Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.11 or newer,
 the Gameplay summary shows the block actions seen from the client. No
 `start_break`/`continue_break` actions indicates client input permissions or game
 mode; present actions indicate the backend is rejecting them, so check adventure
