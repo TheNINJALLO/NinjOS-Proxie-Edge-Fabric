@@ -86,15 +86,15 @@ jobs:
           set -euo pipefail
           git clone --depth 1 --branch "v${ENDSTONE_VERSION}" https://github.com/EndstoneMC/endstone.git companion/endstone-runtime/source
           git -C companion/endstone-runtime/source apply ../ninjos-native-identity.patch
-          python -m pip install --upgrade build conan conan-py-build uv
+          python -m pip install --upgrade auditwheel==6.2.0 build conan conan-py-build patchelf
           (
             cd companion/endstone-runtime/source
             CC=clang-20 CXX=clang++-20 \
               SETUPTOOLS_SCM_PRETEND_VERSION="$NINJOS_ENDSTONE_WHEEL_VERSION" \
               python -m build --wheel
             mkdir -p wheelhouse
-            uv run --script scripts/repair_wheel.py \
-              -o endstone -p endstone -w wheelhouse dist/*.whl
+            auditwheel repair --plat manylinux_2_35_x86_64 \
+              --wheel-dir wheelhouse dist/*.whl
           )
           wheel="$(find companion/endstone-runtime/source/wheelhouse -type f -name '*.whl' -print -quit)"
           [[ -f "$wheel" ]] || { echo 'Patched Endstone CPython 3.14 wheel was not produced.' >&2; exit 1; }
