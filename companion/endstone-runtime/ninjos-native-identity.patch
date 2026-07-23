@@ -43,3 +43,15 @@ index 155b1cb..a1dba8a 100644
      const auto &name = info.xuid.empty() ? packet.payload.connection_request->getThirdPartyName() : info.xbox_live_name;
      const auto uuid = endstone::core::EndstoneUUID::fromMinecraft(info.authenticated_uuid);
      const auto &xuid = info.xuid;
+diff --git a/conanfile.py b/conanfile.py
+index 2f7de62..3c74ace 100644
+--- a/conanfile.py
++++ b/conanfile.py
+@@ -22,6 +22,7 @@ class EndstoneRecipe(ConanFile):
+     default_options = {
+         "shared": False,
+         "fPIC": True,
++        "cpptrace/*:unwind": "nothing",
+         "boost/*:header_only": True,
+         "date/*:header_only": True,
+         "raknet/*:minecraft_version": "r26u3",
