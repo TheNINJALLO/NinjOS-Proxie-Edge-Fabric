@@ -4,8 +4,8 @@ This guide covers installation, configuration, building, verification, upgrades,
 and troubleshooting for the Ninj-OS Proxie Endstone Companion.
 
 ```text
-Edge Fabric release: 7.3.12
-Companion release: 3.6.1
+Edge Fabric release: 7.3.13
+Companion release: 3.7.0
 Default Endstone build target: 0.11.6
 Default dashboard and companion API port: 25571/TCP
 Plugin platform: Linux x86_64
@@ -550,7 +550,7 @@ the signed application-level check.
 
 Connection status proves that signed telemetry is accepted; permissions use a
 separate one-use identity grant during a Full Proxy join. Install Companion
-v3.6.1 or newer, confirm `identity_bridge_enabled=true`, and join through the
+v3.7.0 or newer, confirm `identity_bridge_enabled=true`, and join through the
 backend's Full Proxy public port. The companion briefly retries while Session
 Core publishes the grant and preserves OP already configured in Endstone. Look
 for an `identity.verified` event rather than relying only on `npm probe`.

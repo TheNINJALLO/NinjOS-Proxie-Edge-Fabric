@@ -1,5 +1,19 @@
 # Changelog
 
+## 7.3.13 - 2026-07-23
+
+### Native Endstone proxy identity
+
+- Added versioned downstream login claims carrying the Session Core-authenticated
+  XUID, UUID, gamertag, and one-use session identifier.
+- Added a Ninj-OS Endstone 0.11.6 runtime patch that restores those values in
+  `PlayerAuthenticationInfo` before the native player is constructed.
+- Gated native restoration behind `NINJOS_TRUST_PROXY_IDENTITY=1`, an empty native XUID,
+  offline authentication, strict claim validation, and the existing Companion
+  one-use grant verification and rejection path.
+- Bundled the patched Endstone wheel and installation guide inside Companion
+  v3.7.0 without adding an eighth GitHub release asset.
+
 ## 7.3.12 - 2026-07-23
 
 ### Lossless schema-volatile login packets

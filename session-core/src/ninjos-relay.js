@@ -58,7 +58,14 @@ class NinjOSRelay extends Relay {
     }
 
     const client = new ForwardedIdentityClient(options, downstream.profile)
-    client.options.skinData = downstream.skinData
+    client.options.skinData = {
+      ...downstream.skinData,
+      NinjOSProxyIdentityVersion: 1,
+      NinjOSProxySessionId: String(downstream.__ninjosSessionId || ''),
+      NinjOSProxyXuid: String(downstream.profile?.xuid || ''),
+      NinjOSProxyUuid: String(downstream.profile?.uuid || ''),
+      NinjOSProxyName: String(downstream.profile?.name || '')
+    }
     client.ping().then(() => client.connect()).catch((error) => {
       this.hooks.onBackendError?.(downstream, error)
       this.hooks.fallbackOrDisconnect?.(downstream, `Unable to reach ${this.options.backendId}`)

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
     ninjos_proxie_companion
-    VERSION 3.6.1
+    VERSION 3.7.0
     LANGUAGES CXX
 )
 
