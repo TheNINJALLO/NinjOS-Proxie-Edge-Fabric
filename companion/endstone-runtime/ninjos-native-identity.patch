@@ -51,7 +51,7 @@ index 2f7de62..3c74ace 100644
      default_options = {
          "shared": False,
          "fPIC": True,
-+        "cpptrace/*:unwind": "nothing",
++        "cpptrace/*:unwind": "libunwind",
          "boost/*:header_only": True,
          "date/*:header_only": True,
          "raknet/*:minecraft_version": "r26u3",
