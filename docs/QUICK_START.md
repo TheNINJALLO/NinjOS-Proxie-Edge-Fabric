@@ -2,8 +2,8 @@
 
 ## 1. Pick a host
 
-- Pterodactyl: import the v7.3.11 egg and upload the runtime archive.
-- Linux: run `sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.11-Runtime.tar.gz`.
+- Pterodactyl: import the v7.3.12 egg and upload the runtime archive.
+- Linux: run `sudo ./install-standalone.sh ./NinjOS-Proxie-Edge-Fabric-v7.3.12-Runtime.tar.gz`.
 - Windows: run `install-windows.ps1` as Administrator; the gateway runs in WSL2.
 - Docker: use `deploy/docker/docker-compose.yml` on Linux.
 

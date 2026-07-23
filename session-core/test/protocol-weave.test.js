@@ -94,6 +94,14 @@ assert.deepStrictEqual(summarizePacket('command_request', {
   internal: false, proxyIntercepted: false
 })
 
+weave.observeLosslessPassthrough(weave.resolve(1001), 'zoo', 'clientbound', Buffer.from([0x34, 0xaa, 0xbb]), 0x34)
+weave.flush()
+const passthroughRecord = fs.readFileSync(path.join(observations, '1001', 'zoo.jsonl'), 'utf8')
+  .trim().split('\n').map(JSON.parse).find((record) => record.type === 'protocol_passthrough')
+assert.strictEqual(passthroughRecord.packetName, 'CraftingData')
+assert.strictEqual(passthroughRecord.action, 'lossless_passthrough')
+assert.strictEqual(passthroughRecord.bytes, 3)
+
 const fallbackWeave = new ProtocolWeave({
   packDirectory: path.join(root, 'missing-packs'),
   observationDirectory: path.join(root, 'fallback-observations')

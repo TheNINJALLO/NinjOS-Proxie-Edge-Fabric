@@ -57,6 +57,14 @@ record keeps its error and metadata but withholds sensitive bytes.
 Observation files rotate to one `.1` file at the configured size. They
 remain local and are never uploaded automatically.
 
+### Passive login-packet forwarding
+
+`CraftingData` (`0x34`) and `VoxelShapes` (`0xD1`) can change layout within a
+Bedrock hotfix while retaining the same network protocol number. v7.3.12 reads
+only their packet header, records a `lossless_passthrough` metadata observation,
+and forwards the original application bytes. These packets are never decoded,
+rewritten, dropped, or written to a large failure dump on the live login path.
+
 ## Packet Inspector
 
 The dashboard combines transport/RakNet metadata, gameplay records uploaded by

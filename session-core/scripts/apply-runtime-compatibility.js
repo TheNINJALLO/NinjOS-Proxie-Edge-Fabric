@@ -49,7 +49,7 @@ const oidcKeys = new Map()
 
 function refreshOidcKeys () {
   https.get(OIDC_JWKS_URL, {
-    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.11' },
+    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.12' },
     timeout: 5000
   }, (response) => {
     let body = ''
@@ -206,6 +206,37 @@ replaceOnce(
       return
     }`,
   'A schema lag must not break gameplay.'
+)
+replaceOnce(
+  relay,
+  `    let des
+    try {
+      des = this.server.deserializer.parsePacketBuffer(packet)`,
+  `    // CraftingData and VoxelShapes are large, schema-volatile login packets.
+    // Reading them with a lagging schema can block the event loop or misread a
+    // recipe length. Inspect only their envelope and preserve the wire payload.
+    let header = 0
+    let shift = 0
+    let packetId = null
+    for (let index = 0; index < Math.min(packet.length, 5); index++) {
+      const value = packet[index]
+      header |= (value & 0x7f) << shift
+      if ((value & 0x80) === 0) {
+        packetId = header & 0x3ff
+        break
+      }
+      shift += 7
+    }
+    if (packetId === 0x34 || packetId === 0xd1) {
+      this.emit('clientbound_raw', { packetId, packet })
+      this.sendBuffer(packet)
+      return
+    }
+
+    let des
+    try {
+      des = this.server.deserializer.parsePacketBuffer(packet)`,
+  "this.emit('clientbound_raw', { packetId, packet })"
 )
 replaceOnce(
   relay,

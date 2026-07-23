@@ -1,5 +1,16 @@
 # Troubleshooting
 
+## NetherNet during login with packet 0x34 or 0xD1
+
+Upgrade to v7.3.12 or newer. `CraftingData` (`0x34`) and `VoxelShapes` (`0xD1`)
+are large, schema-volatile clientbound login packets. Session Core now identifies
+their packet envelope before decoding, records metadata, and forwards the
+original bytes unchanged. A lagging inspection schema can no longer parse or
+dump these packets on the live login path.
+
+The Packet Inspector action for these records is `lossless_passthrough`. This is
+expected and does not mean the packet was dropped.
+
 ## Blocks and plugin commands are denied through Full Proxy
 
 Confirm the Minecraft XUID has the intended **network player role**. Dashboard
@@ -8,7 +19,7 @@ permissions. In **Network Players > Network XUID Profiles**, select `operator`
 for the player, save, then fully disconnect and rejoin through the proxy. Role
 changes are included in the next signed identity grant.
 
-In v7.3.11 and newer, changing the dropdown saves immediately and temporarily
+In v7.3.12 and newer, changing the dropdown saves immediately and temporarily
 pauses the live player-table refresh. If the selector returns to its previous
 value, read the dashboard error notification and verify the signed-in dashboard
 account is an owner or administrator.
@@ -26,15 +37,15 @@ permission node or game-mode requirements.
 
 ## Movement works, but break, place, use, or interact disconnects
 
-Upgrade Edge Fabric to v7.3.11 or newer. Earlier Full Proxy builds decoded and
+Upgrade Edge Fabric to v7.3.12 or newer. Earlier Full Proxy builds decoded and
 serialized every gameplay packet, which could alter hotfix packet layouts even
-when the client and backend both used protocol 1001. The lossless relay in v7.3.11
+when the client and backend both used protocol 1001. The lossless relay in v7.3.12
 forwards original decrypted packet bytes unless a reviewed translator explicitly
 changes the packet. If a disconnect remains, retain the Session Core error and
 the matching Protocol Inspector decode-failure record.
 
 If the player remains connected but the block does not break, open Packet
-Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.11 or newer,
+Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.12 or newer,
 the Gameplay summary shows the block actions seen from the client. No
 `start_break`/`continue_break` actions indicates client input permissions or game
 mode; present actions indicate the backend is rejecting them, so check adventure
