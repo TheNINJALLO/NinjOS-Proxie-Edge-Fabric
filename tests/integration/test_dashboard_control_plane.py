@@ -48,7 +48,11 @@ def request(path: str, method: str = "GET", body=None, token: str = "", headers=
     if token:
         request_headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", data=payload, method=method, headers=request_headers)
-    with urllib.request.urlopen(req, timeout=4) as response:
+    try:
+        response = urllib.request.urlopen(req, timeout=4)
+    except urllib.error.HTTPError as error:
+        response = error
+    with response:
         raw = response.read()
         if response.headers.get("Content-Type", "").startswith("application/json"):
             return response.status, json.loads(raw)
