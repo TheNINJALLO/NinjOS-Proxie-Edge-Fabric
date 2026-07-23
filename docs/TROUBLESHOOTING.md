@@ -1,16 +1,35 @@
 # Troubleshooting
 
+## Blocks and plugin commands are denied through Full Proxy
+
+Confirm the Minecraft XUID has the intended **network player role**. Dashboard
+login roles control access to the web interface; they do not grant Minecraft
+permissions. In **Network Players > Network XUID Profiles**, select `operator`
+for the player, save, then fully disconnect and rejoin through the proxy. Role
+changes are included in the next signed identity grant.
+
+To trace a command, open Packet Inspector and filter for packet ID `77`
+(`CommandRequest`). The Gameplay summary records only the command name, whether
+it was handled by Ninj-OS, and whether it was forwarded to the backend. Command
+arguments are intentionally omitted because they can contain secrets. Commands
+other than `/server`, `/hub`, `/lobby`, `/glist`, `/find`, and `/proxie` must be
+reported as forwarded to the backend.
+
+If the player is already an operator and the command was forwarded, use the
+Endstone console to confirm the plugin is loaded and inspect the plugin's own
+permission node or game-mode requirements.
+
 ## Movement works, but break, place, use, or interact disconnects
 
-Upgrade Edge Fabric to v7.3.9 or newer. Earlier Full Proxy builds decoded and
+Upgrade Edge Fabric to v7.3.10 or newer. Earlier Full Proxy builds decoded and
 serialized every gameplay packet, which could alter hotfix packet layouts even
-when the client and backend both used protocol 1001. The lossless relay in v7.3.9
+when the client and backend both used protocol 1001. The lossless relay in v7.3.10
 forwards original decrypted packet bytes unless a reviewed translator explicitly
 changes the packet. If a disconnect remains, retain the Session Core error and
 the matching Protocol Inspector decode-failure record.
 
 If the player remains connected but the block does not break, open Packet
-Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.9 or newer,
+Inspector and filter for packet ID `144` (`PlayerAuthInput`). In v7.3.10 or newer,
 the Gameplay summary shows the block actions seen from the client. No
 `start_break`/`continue_break` actions indicates client input permissions or game
 mode; present actions indicate the backend is rejecting them, so check adventure
