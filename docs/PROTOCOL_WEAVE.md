@@ -60,7 +60,7 @@ remain local and are never uploaded automatically.
 ### Passive login-packet forwarding
 
 `CraftingData` (`0x34`) and `VoxelShapes` (`0xD1`) can change layout within a
-Bedrock hotfix while retaining the same network protocol number. v7.3.13 reads
+Bedrock hotfix while retaining the same network protocol number. v7.3.14 reads
 only their packet header, records a `lossless_passthrough` metadata observation,
 and forwards the original application bytes. These packets are never decoded,
 rewritten, dropped, or written to a large failure dump on the live login path.

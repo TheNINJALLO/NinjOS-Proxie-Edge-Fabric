@@ -1,13 +1,13 @@
 # Ninj-OS Endstone identity runtime
 
-This wheel is a version-locked Endstone 0.11.6 runtime with the Ninj-OS native
+This CPython 3.14 wheel is a version-locked Endstone 0.11.6 runtime with the Ninj-OS native
 identity hook. It must be installed on Full Proxy Endstone backends that need
 the Microsoft XUID exposed through Endstone's normal `Player::getXuid()` API.
 
 Stop Endstone, back up the environment, then install the wheel from this folder:
 
 ```bash
-python3 -m pip install --force-reinstall ./endstone-*.whl
+python -m pip install --force-reinstall ./endstone-*-cp314-cp314-*.whl
 ```
 
 Set this environment variable in the Endstone server's startup configuration:

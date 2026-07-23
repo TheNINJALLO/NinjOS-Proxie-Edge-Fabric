@@ -201,7 +201,7 @@ def main() -> None:
             assert "passwordHash" in owner and "passwordSalt" in owner
             assert "Recovered-password-9012" not in json.dumps(users)
             assert users["setupComplete"] is True
-            print("dashboard-first-run-setup-v7.3.13: PASS")
+            print("dashboard-first-run-setup-v7.3.14: PASS")
         finally:
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)

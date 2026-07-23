@@ -29,6 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python 3.14 for the patched runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
       - name: Select Endstone version
         id: version
         shell: bash
@@ -80,13 +85,14 @@ jobs:
           set -euo pipefail
           git clone --depth 1 --branch "v${ENDSTONE_VERSION}" https://github.com/EndstoneMC/endstone.git companion/endstone-runtime/source
           git -C companion/endstone-runtime/source apply ../ninjos-native-identity.patch
-          python3 -m pip install --upgrade build conan conan-py-build
+          python -m pip install --upgrade build conan conan-py-build
           (
             cd companion/endstone-runtime/source
-            CC=clang-20 CXX=clang++-20 python3 -m build --wheel
+            CC=clang-20 CXX=clang++-20 python -m build --wheel
           )
           wheel="$(find companion/endstone-runtime/source/dist -type f -name '*.whl' -print -quit)"
-          [[ -f "$wheel" ]] || { echo 'Patched Endstone wheel was not produced.' >&2; exit 1; }
+          [[ -f "$wheel" ]] || { echo 'Patched Endstone CPython 3.14 wheel was not produced.' >&2; exit 1; }
+          [[ "$(basename "$wheel")" == *-cp314-cp314-* ]] || { echo "Unexpected wheel ABI: $wheel" >&2; exit 1; }
           mkdir -p companion/build/ninjos-endstone-runtime
           cp "$wheel" companion/build/ninjos-endstone-runtime/
 
@@ -110,13 +116,13 @@ jobs:
           cp companion/endstone-runtime/INSTALL.md "$root/ninjos-endstone-runtime/INSTALL.md"
           cat > "$root/BUILD-INFO.txt" <<INFO
           Plugin: Ninj-OS Endstone Companion
-          Plugin version: 3.7.0
+          Plugin version: 3.7.1
           Endstone version: ${ENDSTONE_VERSION}
           Platform: Linux x86_64
           Git commit: ${GITHUB_SHA}
           INFO
           (cd "$root" && sha256sum plugins/ninjos_proxie_companion.so ninjos-endstone-runtime/*.whl > SHA256SUMS.txt)
-          archive="NinjOS-Endstone-Companion-v3.7.0-Endstone-${ENDSTONE_VERSION}-Linux-x86_64.zip"
+          archive="NinjOS-Endstone-Companion-v3.7.1-Endstone-${ENDSTONE_VERSION}-Linux-x86_64.zip"
           (cd "$root" && zip -r "../$archive" .)
           sha256sum "dist/$archive" > "dist/$archive.sha256"
 
