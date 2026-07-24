@@ -134,7 +134,7 @@ jobs:
           (cd "$root" && zip -r "../$archive" .)
           sha256sum "dist/$archive" > "dist/$archive.sha256"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Endstone-Companion-${{ steps.version.outputs.endstone_version }}
           path: |
