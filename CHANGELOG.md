@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.3.15 - 2026-07-23
+
+### Full Proxy gameplay forwarding
+
+- Restored upstream serialization for decoded serverbound gameplay packets so
+  block actions, commands, and game-mode changes reach and execute on Endstone.
+- Kept lossless raw forwarding only as a fallback for packets the pinned schema
+  cannot decode.
+- Added an upgrade-safe compatibility migration for runtimes already patched by
+  v7.3.14.
+
 ## 7.3.14 - 2026-07-23
 
 ### Python 3.14 Endstone runtime

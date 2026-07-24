@@ -15,8 +15,10 @@ function packageFile (packageName, relativePath) {
 function replaceOnce (file, before, after, marker) {
   let content = fs.readFileSync(file, 'utf8')
   if (content.includes(marker)) return
-  if (!content.includes(before)) throw new Error(`Compatibility patch no longer matches ${file}`)
-  content = content.replace(before, after)
+  const candidates = Array.isArray(before) ? before : [before]
+  const matched = candidates.find((candidate) => content.includes(candidate))
+  if (!matched) throw new Error(`Compatibility patch no longer matches ${file}`)
+  content = content.replace(matched, after)
   fs.writeFileSync(file, content)
 }
 
@@ -49,7 +51,7 @@ const oidcKeys = new Map()
 
 function refreshOidcKeys () {
   https.get(OIDC_JWKS_URL, {
-    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.14' },
+    headers: { Accept: 'application/json', 'User-Agent': 'NinjOS-Session-Core/7.3.15' },
     timeout: 5000
   }, (response) => {
     let body = ''
@@ -160,31 +162,23 @@ replaceOnce(
 )
 replaceOnce(
   relay,
-  `      const des = this.server.deserializer.parsePacketBuffer(e)
+  [`      const des = this.server.deserializer.parsePacketBuffer(e)
       if (des.data.name === 'client_cache_status') {
         // Currently not working, force off the chunk cache
       } else {
         this.upstream.write(des.data.name, des.data.params)
       }`,
-  `      const des = this.server.deserializer.parsePacketBuffer(e)
-      if (des.data.name === 'client_cache_status') {
-        // Currently not working, force off the chunk cache
-      } else {
-        this.upstream.sendBuffer(e)
-      }`,
-  'this.upstream.sendBuffer(e)'
-)
-replaceOnce(
-  relay,
-  `      const des = this.server.deserializer.parsePacketBuffer(e)
-      if (des.data.name === 'client_cache_status') {
-        // Currently not working, force off the chunk cache
-      } else {
-        this.upstream.sendBuffer(e)
-      }`,
   `      // Preserve packets collected during the short upstream handshake.
-      this.upstream.sendBuffer(e) // Ninj-OS lossless upstream queue`,
-  'this.upstream.sendBuffer(e) // Ninj-OS lossless upstream queue'
+      this.upstream.sendBuffer(e) // Ninj-OS lossless upstream queue`],
+  `      const des = this.server.deserializer.parsePacketBuffer(e)
+      if (des.data.name === 'client_cache_status') {
+        // Currently not working, force off the chunk cache
+      } else {
+        // The downstream and upstream sessions negotiate independently.
+        // Re-encode decoded gameplay packets for the upstream session.
+        this.upstream.write(des.data.name, des.data.params)
+      }`,
+  'Re-encode decoded gameplay packets for the upstream session.'
 )
 replaceOnce(
   relay,
@@ -296,15 +290,20 @@ replaceOnce(
 )
 replaceOnce(
   relay,
-  `          // Emit the packet as-is back to the upstream server
+  [`          // Emit the packet as-is back to the upstream server
           this.downInLog('Relaying', des.data)
           this.upstream.queue(des.data.name, des.data.params)`,
   `          // Preserve the original decrypted bytes unless an explicit
           // translator changed the decoded packet.
           this.downInLog('Relaying', des.data)
           if (des.ninjosReencode) this.upstream.queue(des.data.name, des.data.params)
-          else this.upstream.sendBuffer(packet)`,
-  'if (des.ninjosReencode) this.upstream.queue'
+          else this.upstream.sendBuffer(packet)`],
+  `          // The upstream connection has its own session framing and state.
+          // Always serialize packets that decoded successfully; raw forwarding
+          // is reserved for the schema-failure path above.
+          this.downInLog('Relaying', des.data)
+          this.upstream.queue(des.data.name, des.data.params)`,
+  'Always serialize packets that decoded successfully'
 )
 
 const protocol = packageFile('minecraft-data', 'minecraft-data/data/bedrock/1.26.30/protocol.json')
