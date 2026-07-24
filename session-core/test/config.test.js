@@ -21,6 +21,7 @@ assert.ok(relaySource.includes("this.emit('clientbound_raw', { packetId, packet 
 const ninjosRelaySource = fs.readFileSync(path.join(__dirname, '..', 'src/ninjos-relay.js'), 'utf8')
 assert.ok(ninjosRelaySource.includes('NinjOSProxySessionId'))
 assert.ok(ninjosRelaySource.includes('NinjOSProxyXuid'))
+assert.ok(ninjosRelaySource.includes('downstream.skinData?.SelfSignedId'))
 const minecraftRoot = path.dirname(require.resolve('minecraft-data/package.json'))
 const protocol = JSON.parse(fs.readFileSync(path.join(minecraftRoot, 'minecraft-data/data/bedrock/1.26.30/protocol.json'), 'utf8'))
 assert.strictEqual(protocol.types.VoxelShape[1].find((field) => field.name === 'cells').type, 'VoxelCells')

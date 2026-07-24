@@ -1,14 +1,14 @@
 # Pterodactyl installation
 
-This guide installs Ninj-OS Proxie Edge Fabric v7.3.15 on one Pterodactyl server. The same proxy instance can route Transparent Auth and Full Proxy backends.
+This guide installs Ninj-OS Proxie Edge Fabric v7.3.16 on one Pterodactyl server. The same proxy instance can route Transparent Auth and Full Proxy backends.
 
 ## Files
 
 Use these files from the deployment ZIP:
 
 ```text
-egg-ninjos-proxie-edge-fabric-v7.3.15.json
-NinjOS-Proxie-Edge-Fabric-v7.3.15-Runtime.tar.gz
+egg-ninjos-proxie-edge-fabric-v7.3.16.json
+NinjOS-Proxie-Edge-Fabric-v7.3.16-Runtime.tar.gz
 ```
 
 The runtime already contains the gateway, dashboard, Bedrock Session Core dependencies, vanilla bridge pack, Linux and Windows vanilla agents, and Endstone source package.
@@ -18,7 +18,7 @@ The runtime already contains the gateway, dashboard, Bedrock Session Core depend
 1. Open the Pterodactyl administrator panel.
 2. Open **Nests** and select the target nest.
 3. Choose **Import Egg**.
-4. Import the v7.3.15 egg.
+4. Import the v7.3.16 egg.
 5. Create a new server or assign the egg to the existing proxy server.
 
 The egg uses a Node.js 22 image because Full Proxy Mode uses the bundled Session Core. Transparent Auth Mode also works in the same image.
