@@ -28,7 +28,7 @@ jobs:
     container: ubuntu:22.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python 3.14 for the patched runtime
         uses: actions/setup-python@v5
