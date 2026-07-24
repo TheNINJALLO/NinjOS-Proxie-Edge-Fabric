@@ -15,7 +15,7 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 
-$ProductVersion = "7.3.14"
+$ProductVersion = "7.3.15"
 $WslCreatorId = "{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}"
 $FirewallGroup = "Ninj-OS Proxie"
 $StartupTaskName = "Ninj-OS Proxie WSL Startup"

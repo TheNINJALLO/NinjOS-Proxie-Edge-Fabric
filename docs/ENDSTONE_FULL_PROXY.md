@@ -24,7 +24,7 @@ require_proxy_identity=true
 Dashboard account roles and Minecraft player roles are intentionally separate.
 An owner dashboard login does not automatically make the owner's XUID an
 operator. After the first proxied join, open **Network Players**, find the XUID
-profile, and choose `operator`. v7.3.14 saves the selection immediately. Fully
+profile, and choose `operator`. v7.3.15 saves the selection immediately. Fully
 disconnect and rejoin so the new signed identity grant applies the role and
 refreshes Endstone's command list.
 

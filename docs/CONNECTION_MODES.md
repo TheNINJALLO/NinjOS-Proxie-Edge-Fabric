@@ -1,6 +1,6 @@
 # Connection modes
 
-Ninj-OS v7.3.14 does not force one authentication model on an entire network. The mode is chosen per backend.
+Ninj-OS v7.3.15 does not force one authentication model on an entire network. The mode is chosen per backend.
 
 ## Transparent Auth Mode
 

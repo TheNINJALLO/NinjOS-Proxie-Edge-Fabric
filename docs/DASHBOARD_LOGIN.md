@@ -2,7 +2,7 @@
 
 ## First-run owner setup
 
-A fresh Ninj-OS Proxie v7.3.14 installation does not ship with a shared username,
+A fresh Ninj-OS Proxie v7.3.15 installation does not ship with a shared username,
 password, or permanent dashboard token. The dashboard creates a single-use setup
 code and blocks every management API until an owner account is created.
 
@@ -99,4 +99,4 @@ variable when possible because it does not remove the current account.
 Upgrades preserve existing token-based owner accounts so users are not locked out.
 After signing in with the old token, use **Owner Account** to replace it with a
 username and password. `DASHBOARD_TOKEN` remains only as an upgrade-compatibility
-setting and is not used for fresh v7.3.14 owner setup.
+setting and is not used for fresh v7.3.15 owner setup.

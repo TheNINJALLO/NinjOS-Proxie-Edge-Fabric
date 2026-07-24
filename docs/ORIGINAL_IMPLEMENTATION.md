@@ -1,6 +1,6 @@
 # Implementation provenance
 
-Ninj-OS Proxie Edge Fabric v7.3.14 uses the Ninj-OS transport and management
+Ninj-OS Proxie Edge Fabric v7.3.15 uses the Ninj-OS transport and management
 architecture while retaining clear credit for the project that helped inform its
 design.
 
