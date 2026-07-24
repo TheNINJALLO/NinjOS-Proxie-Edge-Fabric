@@ -43,6 +43,13 @@ class NinjOSRelay extends Relay {
 
   async openUpstreamConnection (downstream, clientAddr) {
     const destination = this.options.destination
+    // Current OIDC identity tokens may omit the legacy profile UUID. The
+    // signed client-data JWT still carries SelfSignedId, which is the stable
+    // per-login UUID Bedrock uses for the upstream player identity.
+    const forwardedProfile = {
+      ...downstream.profile,
+      uuid: downstream.profile?.uuid || downstream.skinData?.SelfSignedId
+    }
     const options = {
       offline: true,
       username: downstream.profile.name,
@@ -57,13 +64,13 @@ class NinjOSRelay extends Relay {
       conLog: null
     }
 
-    const client = new ForwardedIdentityClient(options, downstream.profile)
+    const client = new ForwardedIdentityClient(options, forwardedProfile)
     client.options.skinData = {
       ...downstream.skinData,
       NinjOSProxyIdentityVersion: 1,
       NinjOSProxySessionId: String(downstream.__ninjosSessionId || ''),
       NinjOSProxyXuid: String(downstream.profile?.xuid || ''),
-      NinjOSProxyUuid: String(downstream.profile?.uuid || ''),
+      NinjOSProxyUuid: String(forwardedProfile.uuid || ''),
       NinjOSProxyName: String(downstream.profile?.name || '')
     }
     client.ping().then(() => client.connect()).catch((error) => {

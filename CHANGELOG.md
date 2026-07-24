@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.3.16 - 2026-07-24
+
+### OIDC proxy identity restoration
+
+- Used the signed Bedrock `SelfSignedId` when current OIDC tokens omit the
+  legacy profile UUID.
+- Forwarded the same UUID through the upstream login and identity grant so the
+  native Endstone identity restoration passes validation.
+- Restored Full Proxy permission identity for block actions, commands, and
+  game-mode changes after the v7.3.15 packet-forwarding fix.
+
 ## 7.3.15 - 2026-07-23
 
 ### Full Proxy gameplay forwarding

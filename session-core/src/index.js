@@ -28,7 +28,7 @@ function writeRuntimeState () {
   const state = {
     timestamp: Date.now(),
     engine: 'session-core',
-    version: '7.3.15',
+    version: '7.3.16',
     protocolPacks: protocolWeave?.catalog() || [],
     protocolInspection: protocolWeave?.inspection() || { enabled: false },
     backends: [...active.values()].map(({ backend, relay, codecProtocol }) => ({
@@ -121,6 +121,7 @@ async function postJson (url, body, headers = {}) {
 
 async function createIdentityGrant (backend, player) {
   const profile = player.profile || {}
+  const uuid = String(profile.uuid || player.skinData?.SelfSignedId || '')
   const sessionId = crypto.randomUUID()
   player.__ninjosSessionId = sessionId
   const body = JSON.stringify({
@@ -128,7 +129,7 @@ async function createIdentityGrant (backend, player) {
     serverId: backend.id,
     username: profile.name || 'Unknown',
     xuid: String(profile.xuid || ''),
-    uuid: String(profile.uuid || ''),
+    uuid,
     originalIp: player.connection?.address?.address || player.connection?.address?.toString?.() || '',
     clientVersion: currentConfig.version,
     protocolVersion: Number(player.version || 0),
@@ -195,7 +196,7 @@ function handleProxyCommand (backend, player, packet, descriptor) {
     const message = found ? `${found.name} is on ${found.backendId}` : `${args[0] || 'Player'} is not online`
     player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: `§b${message}` })
   } else {
-    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.15 · Full Proxy Session Core' })
+    player.queue('text', { type: 'system', needs_translation: false, source_name: '', xuid: '', platform_chat_id: '', filtered_message: '', message: '§bNinj-OS Proxie v7.3.16 · Full Proxy Session Core' })
   }
   return true
 }
